@@ -1,96 +1,35 @@
-# Version 0.5.2 — Appel progressif et recherche des mandataires
+# Sanguinet — Délibérations v0.5.3
 
-Dans les paramètres de séance, choisir l’élu puis Présent, Absent ayant donné pouvoir, ou Absent sans pouvoir. L’appel avance vers le prochain élu non renseigné ; le sélecteur permet de revenir sur toute personne.
+## Changements
 
-Absent ayant donné pouvoir ouvre le choix du mandataire avec recherche par nom et prénom (sans distinction de casse ni d’accents). L’élu donnant pouvoir est exclu. Un élu portant déjà un autre pouvoir est affiché indisponible. Le mandataire choisi est marqué présent automatiquement. S’il avait lui-même donné pouvoir, son ancien pouvoir est retiré et cette modification est indiquée.
+- Suppression du sélecteur manuel Agent de saisie. La reconnaissance du compte est reportée à une prochaine configuration. Pour les nouvelles écritures, JOURNAL_ACTIONS.Utilisateur et ORDRE_DU_JOUR.Valide_par restent sans référence (0), sans choisir un agent par défaut ni inventer une identité. Les autres données du journal et l’horodatage restent enregistrés.
+- Président et secrétaire sont immédiatement visibles en tête de l’appel. Les deux sont obligatoires et doivent être marqués présents avant d’enregistrer l’appel. Un appel partiel reste enregistrable lorsque ces deux responsables sont renseignés et présents. Toute validation de point requiert aussi leur renseignement.
+- Le suivi de séance ne crée plus de séance, de délibération ni de point d’ordre du jour. Il charge les séances et leurs points préparés en amont dans Grist. Les anciens enregistrements restent conservés.
+- La recherche du mandataire, la présence automatique, les votes par groupes, les exceptions et le verrouillage des résultats sont conservés.
 
-Les choix restent dans la fenêtre jusqu’au clic sur Enregistrer. L’enregistrement sauvegarde en une fois les présences et les pouvoirs, y compris la présence automatique du mandataire. Il est possible d’enregistrer un appel incomplet puis de le reprendre : les élus non renseignés ne sont pas transformés en absents. Président et secrétaire peuvent être complétés dans la section dépliable ; ils restent requis avant validation d’un vote.
+## Publier et installer
 
-Le menu Modifier un pouvoir utilise désormais le même appel et la même recherche. Pour corriger un pouvoir, sélectionner l’élu absent puis cliquer de nouveau sur Absent ayant donné pouvoir. Pour le retirer, choisir Présent ou une absence sans pouvoir. Un mandataire portant un pouvoir ne peut être marqué absent tant que ce pouvoir n’a pas été réattribué.
+1. Décompresser l’archive.
+2. Déposer le contenu du dossier sanguinet-deliberations à la racine du dépôt GitHub, en remplaçant les fichiers existants. Ne pas déposer le ZIP ni de fichier .grist.
+3. Attendre la publication GitHub Pages.
+4. Dans les options du widget personnalisé lié à SEANCES_CM, utiliser :
 
-Aucune modification des tables Grist nécessaire. Les validations et votes déjà enregistrés restent conservés.
+https://tride40.github.io/sanguinet-deliberations/session.html?v=0.5.3
 
-Tests : appel partiel puis reprise, recherche normalisée, présence automatique, pouvoir sur soi interdit, mandataire déjà chargé indisponible, réattribution, ancien pouvoir retiré, ainsi que le parcours de sauvegarde/relecture et de validation de la v0.5. Tests exécutés avec un pont Grist simulé reprenant votre schéma ; le premier essai dans votre instance reste à effectuer.
+5. Conserver l’accès complet et vérifier l’affichage Version 0.5.3.
 
-Publication : déposer le contenu du dossier sanguinet-deliberations à la racine du dépôt GitHub, y compris le nouveau fichier src/call-model.js. Attendre le succès de GitHub Pages, puis utiliser dans Grist :
+Aucune modification des colonnes Grist nécessaire. L’URL ouverte hors Grist affiche une invitation à installer le widget ; c’est normal.
 
-https://tride40.github.io/sanguinet-deliberations/session.html?v=0.5.2
+## Déroulement prévu
 
-Vérifier que Version 0.5.2 apparaît dans le widget. Conserver l’accès complet au document.
+En amont : préparer SEANCES_CM, les projets dans DELIBERATIONS et les lignes ORDRE_DU_JOUR avec leurs liens Seance et Deliberation. La convocation et le dossier transmis aux élus relèvent de cette phase de préparation ; cette livraison ne crée pas de nouvel outil de convocation ou de constitution du dossier. Le module de rédaction existant index.html est conservé, séparément, lié à DELIBERATIONS.
 
+Pendant la réunion : choisir la séance préparée, renseigner le président et le secrétaire puis faire l’appel. Les pouvoirs se choisissent avec recherche et marquent le mandataire présent. Enregistrer l’appel, puis saisir et valider les votes des points déjà inscrits. Après toute préparation externe de l’ordre du jour, utiliser Actualiser pour le relire. Une séance sans point affiche une indication de préparation, sans bouton de création.
 
-# Sanguinet — Délibérations v0.5.2
+## Vérifications
 
-## Installation, pas à pas
+Tests dans un navigateur avec un pont Grist simulé reprenant le schéma fourni : ordre du jour existant chargé, absence des trois commandes agent/création de séance/ajout de point, champs président et secrétaire visibles, enregistrement refusé avec champ vide ou responsable absent, appel partiel avec responsables renseignés, présence automatique du mandataire, validation et relecture sans auteur inventé. Les premiers essais dans l’instance réelle restent nécessaires après publication.
 
-### 1. Mettre à jour GitHub
+Les règles de sauvegarde des voix et pouvoirs restent celles de la v0.5 : une voix directe utilise Elu ; une voix exercée par pouvoir utilise Elu pour le mandataire et Mandant pour l’élu représenté. Le groupe appliqué est celui de l’élu représenté. Les totaux et le résultat sont calculés à partir de ces voix ; aucun vote n’est attribué par défaut à un nouveau point.
 
-Décompressez toute l’archive. Dans le dépôt `tride40/sanguinet-deliberations`, utilisez Add file > Upload files pour déposer le contenu du dossier `sanguinet-deliberations` à la racine, en remplaçant les fichiers existants. Ne déposez pas le ZIP et ne déposez aucun fichier .grist.
-
-Conservez les dossiers css et src. Les fichiers session.html et index.html doivent être directement à la racine. Validez avec Commit changes, puis attendez la coche verte de la publication GitHub Pages.
-
-La page https://tride40.github.io/sanguinet-deliberations/session.html?v=0.5.2 affiche maintenant, hors de Grist, une invitation à l’installer dans un widget. C’est normal : les élus et séances réels ne sont accessibles qu’à travers Grist. La démonstration séparée reste disponible dans demo-session.html.
-
-### 2. Ajouter le suivi de séance dans Grist
-
-Dans votre document Délibérations :
-
-1. Ajouter nouveau > Ajouter une page, puis choisir le widget Personnalisé (Custom).
-2. Choisir SEANCES_CM comme table de données, même si elle est vide.
-3. Dans les options du widget, choisir l’URL personnalisée et saisir :
-
-https://tride40.github.io/sanguinet-deliberations/session.html?v=0.5.2
-
-4. Autoriser l’accès complet au document. Il est nécessaire pour lire les différentes tables et enregistrer les votes ; aucune clé API n’est à créer ni à mettre dans GitHub.
-5. Nommer cette page « Suivi de séance ».
-
-Le message « Connecté à Grist » doit apparaître. Aucun exemple fictif n’est écrit au chargement. Le widget charge les séances depuis votre document et propose son propre sélecteur ; il ne suit pas automatiquement la ligne sélectionnée dans une autre table.
-
-### 3. Premier test depuis un document vide
-
-1. Choisir votre nom dans Agent de saisie. Ce champ déclare l’auteur de la saisie ; il ne remplace pas une authentification ni une règle d’accès Grist.
-2. Cliquer sur Nouvelle séance ; saisir intitulé, date et heure de Paris, lieu et membres en exercice.
-3. Ouvrir Voir / modifier les paramètres ; choisir président et secrétaire puis renseigner chaque élu, son groupe de séance et son éventuel mandataire. Les présences ne sont jamais déduites des votes ni remplies automatiquement comme « Présent ».
-4. Enregistrer. Pour une séance de 27 membres, les 27 participations doivent être renseignées. Le module applique un contrôle de quorum ordinaire ; il ne gère pas les exceptions de nouvelle convocation sans quorum.
-5. Ajouter un point > Nouvelle délibération, puis renseigner son objet. Le widget crée une délibération en brouillon et la rattache à l’ordre du jour. Il ne lui attribue pas de numéro officiel.
-6. Cliquer sur Unanimité, ou choisir le vote de chaque groupe. Un nouveau point n’a aucun vote par défaut.
-7. Ouvrir Saisir les exceptions individuelles si nécessaire. « Suivre le groupe » supprime une exception. Pour une non-participation, renseigner le motif.
-8. Enregistrer un brouillon ou valider. Une validation enregistre les votes, groupes, décision, statut du point et journal dans un même lot d’actions Grist.
-9. Actualiser le widget : retrouver les votes et la pastille verte. Cliquer sur Modifier le résultat, corriger puis revalider, ou annuler la correction.
-10. Vérifier les lignes créées dans VOTES_DELIBERATIONS et le texte de Decision_apercu. Effectuer ce premier essai avant toute utilisation réelle.
-
-Une absence de quorum, un pouvoir invalide, une saisie incomplète, une absence de suffrage exprimé ou un départage manquant bloque la validation. La validation est également bloquée pendant une suspension. Les brouillons permettent de conserver une saisie partielle.
-
-### 4. Rédiger les délibérations
-
-Le module de rédaction antérieur est conservé à index.html. Pour l’utiliser dans Grist, ajouter un deuxième widget personnalisé lié à DELIBERATIONS avec l’URL :
-
-https://tride40.github.io/sanguinet-deliberations/index.html?v=0.5.2
-
-Accorder l’accès complet et sélectionner la délibération à rédiger dans la table associée. Le raccordement de rédaction existant est conservé ; cette livraison cible le suivi de séance. La numérotation officielle et les exports définitifs ne font pas partie de ce nouveau raccordement.
-
-## Conventions de sauvegarde
-
-- Vote direct : Elu = élu votant, Vote_par_pouvoir = faux, Mandant vide.
-- Vote par pouvoir : Elu = élu qui exerce le pouvoir, Vote_par_pouvoir = vrai, Mandant = élu représenté. La voix est regroupée selon le groupe du mandant. L’unicité porte sur l’élu représenté, pas uniquement sur Elu.
-- Groupe_seance est conservé par participation ; Groupe_vote est conservé par voix. Les changements ultérieurs d’appartenance ne réécrivent pas les votes sauvegardés.
-- Une exception est explicitement conservée même si le vote de groupe change. Le bouton Unanimité remet toutes les voix à Pour et retire les exceptions.
-- Ajournée et Retirée suppriment les lignes de vote de ce point dans la même sauvegarde et conservent la trace précédente dans le journal.
-- Les arrivées, départs et pouvoirs mettent à jour les participations et le journal. Les résultats déjà validés sont relus avec leur électorat sauvegardé.
-- Les observations, suspensions et reprises sont enregistrées dans JOURNAL_ACTIONS. Les amendements vont dans AMENDEMENTS_SEANCE ; ils ne modifient pas automatiquement le texte de l’acte.
-
-## Périmètre et limites
-
-Cette version est une première version connectée à tester. Elle utilise le schéma du fichier transmis « Délibérations (2).grist », avec la correction finale du type Resultat_vote effectuée ensuite par l’utilisateur. Elle n’écrit pas dans les colonnes de formule du résultat.
-
-Tests automatisés : document vide, création, présences, pouvoirs, groupes, exceptions, sauvegarde et relecture, verrouillage, correction/annulation, rejet, panne de sauvegarde, changement externe, points sans vote, les six actions exceptionnelles, suspension et conservation des résultats historiques. Les requêtes d’écriture ont été contrôlées contre les identifiants et formules de votre export. 256 combinaisons de décompte ont également été testées.
-
-Ces tests utilisent un pont Grist simulé dans un navigateur et des données fictives anonymisées. Ils ne remplacent pas le premier essai dans votre document Grist réel ; la communication avec votre instance et le recalcul par son moteur n’ont pas été exécutés ici.
-
-Le contrôle de modifications concurrentes relit le document avant une sauvegarde et refuse l’écrasement si un changement est détecté. Ce n’est pas un verrou transactionnel multi-utilisateur : pour les premiers tests, utilisez un seul opérateur de séance. Le bouton Modifier le résultat est un verrou ergonomique ; il n’empêche pas les modifications directes dans les tables par des utilisateurs autorisés.
-
-La création d’une délibération et son rattachement à l’ordre du jour utilisent deux requêtes successives. Si le rattachement échoue, la délibération créée reste disponible : actualiser, puis Ajouter un point > Délibération existante à rattacher. Ne recréez pas le même projet.
-
-En cas d’erreur de lecture juste après une sauvegarde ou de coupure réseau, vérifier les tables ou actualiser avant de réessayer une création. Le widget ne relance pas automatiquement les écritures et n’utilise pas de stockage local en remplacement de Grist.
-
-Documentation API utilisée : https://support.getgrist.com/widget-custom/ et https://support.getgrist.com/code/interfaces/grist_plugin_api.GristDocAPI/
+Les écritures de validation sont envoyées ensemble. Les modifications externes détectées avant sauvegarde bloquent l’écrasement ; ce contrôle n’est pas un verrou transactionnel multi-utilisateur. Le verrouillage d’un point est ergonomique et ne remplace pas les droits Grist. Les amendements enregistrés restent à intégrer au texte dans le module de rédaction. Numérotation officielle, convocation et exports définitifs ne sont pas ajoutés par cette version.

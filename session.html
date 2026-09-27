@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="css/components.css" />
   <link rel="stylesheet" href="css/session.css" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
-  <link rel="stylesheet" href="css/session-live.css?v=0.5.2" />
+  <link rel="stylesheet" href="css/session-live.css?v=0.5.3" />
 </head>
 <body>
   <div class="session-shell">
@@ -22,7 +22,7 @@
       <div class="topbar-actions">
         <div class="user-chip">
           <div class="avatar">CM</div>
-          <div><strong>Suivi de séance</strong><small>Version 0.5.2 · Grist</small></div>
+          <div><strong>Suivi de séance</strong><small>Version 0.5.3 · Grist</small></div>
         </div>
       </div>
     </header>
@@ -32,8 +32,6 @@
     <main class="session-page">
       <section class="card live-controls">
         <label>Séance<select id="sessionPicker" disabled><option>Aucune connexion</option></select></label>
-        <label>Agent de saisie<select id="operatorPicker" disabled><option>Choisir l’agent</option></select></label>
-        <button id="newSessionBtn" class="secondary-btn" disabled>＋ Nouvelle séance</button>
         <button id="refreshBtn" class="ghost-btn" disabled>Actualiser</button>
       </section>
       <p id="liveHelp" class="empty-note">Les données réelles seront chargées depuis Grist. Aucun enregistrement n’est effectué au chargement.</p>
@@ -59,11 +57,10 @@
       </section>
 
       <section class="session-toolbar">
-        <button id="newPointBtn" class="secondary-btn">＋ Ajouter un point</button>
         <div class="progress-meta"><strong id="progressText">Point 6 sur 14</strong><span id="pointStatus" class="status-pill current">En cours</span></div>
       </section>
 
-      <p id="emptyAgenda" class="card" hidden>Aucun point pour cette séance. Cliquez sur « Ajouter un point ».</p>
+      <p id="emptyAgenda" class="card" hidden>Aucun point inscrit pour cette séance. L’ordre du jour et les délibérations doivent être préparés en amont dans Grist. Actualisez après leur préparation.</p>
       <div class="session-layout">
         <aside class="agenda-panel card">
           <div class="panel-title"><div><h2>Ordre du jour</h2><small id="agendaCount">14 points</small></div></div>
@@ -166,7 +163,7 @@
   </div>
 
   <script src="src/session-data.js"></script>
-  <script src="src/call-model.js?v=0.5.2"></script>
-  <script src="src/session-live.js?v=0.5.2"></script>
+  <script src="src/call-model.js?v=0.5.3"></script>
+  <script src="src/session-live.js?v=0.5.3"></script>
 </body>
 </html>

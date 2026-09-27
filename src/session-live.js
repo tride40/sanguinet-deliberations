@@ -19,7 +19,8 @@ const currentVoters=()=>{
 function status(kind,message){$('#sessionConnectionStatus').className='connection-status '+kind;$('#sessionConnectionStatus').textContent=message;}
 function option(value,label,selected){return `<option value="${esc(value)}" ${String(value)===String(selected)?'selected':''}>${esc(label)}</option>`;}
 function personOptions(selected,empty='Choisir…'){return option('',empty,selected)+db.ELUS.map(e=>option(e.id,e.Nom_complet,selected)).join('');}
-function operator(){const id=num($('#operatorPicker').value);if(!id)throw Error('Choisissez l’agent de saisie en haut de la page.');return id;}
+// Account-to-agent matching will be configured later. Never invent an author.
+function operator(){return 0;}
 function log(description,extra={}){return ['AddRecord','JOURNAL_ACTIONS',null,{Date_action:now(),Utilisateur:operator(),Type_action:'Autre',Seance:sessionId||0,Deliberation:delib()?.id||0,Point_ODJ:pointId||0,Description:description,Automatique:true,Niveau:'Information',...extra}];}
 function setBusy(value){busy=value;document.body.classList.toggle('busy',value);$('.session-page').inert=value;$('#rareModal').inert=value;}
 async function execute(fn){if(busy)return;setBusy(true);$('#modalError').hidden=true;try{await fn();}catch(e){status('error',e.message||String(e));if(!$('#rareModal').hidden){$('#modalError').textContent=e.message||String(e);$('#modalError').hidden=false;}}finally{setBusy(false);}}
@@ -37,11 +38,9 @@ function restore(){
  // No default vote is assigned to a new deliberation. Unanimity requires an explicit click.
 }
 function render(){
- const actor=$('#operatorPicker').value;
- $('#operatorPicker').innerHTML=option('','Choisir l’agent',actor)+db.AGENTS.filter(a=>a.Actif||String(a.id)===actor).map(a=>option(a.id,a.Nom_complet,actor)).join('');
  $('#sessionPicker').innerHTML=option('','Choisir une séance',sessionId)+db.SEANCES_CM.map(s=>option(s.id,s.Libelle_seance||s.Reference_seance||'Séance #'+s.id,sessionId)).join('');
- $$('#sessionPicker,#operatorPicker,#newSessionBtn,#refreshBtn').forEach(e=>e.disabled=false);
- $('#connectedContent').hidden=!session();$('#liveHelp').textContent=session()?'Agent de saisie : choisissez votre nom. Enregistrez vos modifications avant de changer de point.':'Aucune séance sélectionnée. Commencez par « Nouvelle séance », puis renseignez les présences.';
+ $$('#sessionPicker,#refreshBtn').forEach(e=>e.disabled=false);
+ $('#connectedContent').hidden=!session();$('#liveHelp').textContent=session()?'Ordre du jour préparé en amont. Enregistrez vos modifications avant de changer de point.':'Aucune séance sélectionnée. Sélectionnez une séance préparée dans Grist, puis cliquez sur Actualiser si nécessaire.';
  if(!session())return;
  const s=session(),p=parts(),present=p.filter(x=>x.Statut_presence===D.PRESENT).length;
  $('#sessionTitle').textContent=s.Libelle_seance||'Séance';$('#sessionSubtitle').textContent=s.Date_heure_seance?new Date(s.Date_heure_seance*1000).toLocaleString('fr-FR',{timeZone:'Europe/Paris'}):'';
@@ -94,25 +93,20 @@ function openModal(title,body,save){modalTrigger=document.activeElement;$('#conf
 function closeModal(){if(busy)return;$('#confirmRareBtn').hidden=false;$('#rareModal').hidden=true;modalSave=null;modalTrigger?.focus();}
 function hideModal(){ $('#confirmRareBtn').hidden=false;$('#rareModal').hidden=true;modalSave=null; }
 function field(id,label,type='text',value='',required=false){return `<label>${label}<input id="${id}" type="${type}" value="${esc(value)}" ${required?'required':''}></label>`;}
-function parisTimestamp(value){const [date,time]=value.split('T');if(!date||!time)throw Error('Renseignez la date et l’heure.');const [y,m,d]=date.split('-').map(Number),[h,min]=time.split(':').map(Number);const target=Date.UTC(y,m-1,d,h,min);let guess=target;for(let n=0;n<3;n++){const p=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(guess)).map(x=>[x.type,x.value]));const shown=Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute);if(shown===target)return guess/1000;guess+=target-shown;}throw Error('Heure inexistante au changement d’heure. Choisissez une autre heure.');}
-function newSession(){if(!leave())return;openModal('Créer une séance',`<div class="modal-grid">${field('newDate','Date et heure (Paris)','datetime-local','',true)}${field('newLabel','Intitulé','text','',true)}${field('newPlace','Lieu','text',db.PARAMETRES_APPLICATION[0]?.Lieu_seance_defaut||'')}${field('newMembers','Membres en exercice','number',db.PARAMETRES_APPLICATION[0]?.Nb_conseillers||D.active(db).length,true)}</div>`,async()=>{
- const actor=operator(),stamp=parisTimestamp($('#newDate').value),members=num($('#newMembers').value);if(members<1)throw Error('Nombre de membres invalide.');await store.fresh();
- const result=await store.apply([['AddRecord','SEANCES_CM',null,{Date_heure_seance:stamp,Reference_seance:'CM-'+$('#newDate').value.slice(0,10).replaceAll('-',''),Libelle_seance:$('#newLabel').value.trim(),Lieu_seance:$('#newPlace').value.trim(),Nb_membres_exercice:members,Statut_seance:'Préparation'}]]);
- sessionId=num(result.retValues?.[0]);pointId=0;hideModal();await refresh();status('connected','Séance créée. Renseignez maintenant ses présences et ses pouvoirs.');
- });}
 function settings(){
  if(!leave())return;
  const s=session(),old=parts(),ids=[...new Set([...D.active(db).map(e=>e.id),...old.map(p=>p.Elu)])];
  const callRows=ids.map(id=>{const p=old.find(r=>r.Elu===id),e=db.ELUS.find(e=>e.id===id);return {Seance:sessionId,Elu:id,Statut_presence:p?.Statut_presence||'',Mandataire:p?.Mandataire||0,Groupe_seance:p?.Groupe_seance??e?.Groupe_politique??0};});
  let selected=callRows.find(r=>!r.Statut_presence)?.Elu||ids[0],donor=0;
  const label=r=>!r.Statut_presence?'À appeler':r.Statut_presence===D.PROXY?'Pouvoir à '+name(r.Mandataire):r.Statut_presence;
- openModal('Appel des élus',`<div id="callMain"><details><summary>Président, secrétaire et membres en exercice</summary><div class="modal-grid"><label>Président<select id="president">${personOptions(s.President_seance)}</select></label><label>Secrétaire<select id="secretary">${personOptions(s.Secretaire_seance)}</select></label>${field('members','Membres en exercice','number',s.Nb_membres_exercice,true)}</div></details><p id="callProgress" role="status"></p><label>Élu à appeler ou à corriger<select id="callPerson"></select></label><section class="call-card"><h3 id="callName"></h3><p id="callState"></p><div class="call-buttons"><button type="button" id="callPresent">✓ Présent</button><button type="button" id="callProxy">↗ Absent ayant donné pouvoir</button><button type="button" id="callAbsent">Absent sans pouvoir</button></div><div id="absenceChoices" hidden><p>Précisez l’absence :</p><button type="button" data-absence="Absent excusé sans pouvoir">Absent excusé</button><button type="button" data-absence="Absent non excusé">Absent non excusé</button></div></section><p id="callFeedback" role="status"></p><p class="empty-note">Les choix seront sauvegardés avec « Enregistrer ». Vous pouvez enregistrer un appel incomplet et le reprendre plus tard.</p></div><section id="proxyPicker" hidden aria-labelledby="proxyTitle"><h3 id="proxyTitle"></h3><label>Rechercher le mandataire<input id="proxySearch" type="search" placeholder="Nom ou prénom…" autocomplete="off"></label><p class="empty-note">Le mandataire choisi sera marqué présent automatiquement. Les élus portant déjà un autre pouvoir sont indisponibles.</p><div id="proxyResults"></div><button type="button" id="cancelProxy" class="ghost-btn">Retour à l’appel</button></section>`,async()=>{
+ openModal('Appel des élus',`<div id="callMain"><h3>Président et secrétaire de séance</h3><p>Ces deux champs sont obligatoires pour enregistrer l’appel.</p><div class="modal-grid"><label>Président<select id="president" required>${personOptions(s.President_seance)}</select></label><label>Secrétaire<select id="secretary" required>${personOptions(s.Secretaire_seance)}</select></label>${field('members','Membres en exercice','number',s.Nb_membres_exercice,true)}</div><p id="callProgress" role="status"></p><label>Élu à appeler ou à corriger<select id="callPerson"></select></label><section class="call-card"><h3 id="callName"></h3><p id="callState"></p><div class="call-buttons"><button type="button" id="callPresent">✓ Présent</button><button type="button" id="callProxy">↗ Absent ayant donné pouvoir</button><button type="button" id="callAbsent">Absent sans pouvoir</button></div><div id="absenceChoices" hidden><p>Précisez l’absence :</p><button type="button" data-absence="Absent excusé sans pouvoir">Absent excusé</button><button type="button" data-absence="Absent non excusé">Absent non excusé</button></div></section><p id="callFeedback" role="status"></p><p class="empty-note">Les choix seront sauvegardés avec « Enregistrer ». Vous pouvez reprendre un appel incomplet plus tard, après avoir renseigné le président et le secrétaire et les avoir marqués présents.</p></div><section id="proxyPicker" hidden aria-labelledby="proxyTitle"><h3 id="proxyTitle"></h3><label>Rechercher le mandataire<input id="proxySearch" type="search" placeholder="Nom ou prénom…" autocomplete="off"></label><p class="empty-note">Le mandataire choisi sera marqué présent automatiquement. Les élus portant déjà un autre pouvoir sont indisponibles.</p><div id="proxyResults"></div><button type="button" id="cancelProxy" class="ghost-btn">Retour à l’appel</button></section>`,async()=>{
   if(donor)throw Error('Choisissez un mandataire ou revenez à l’appel.');
   const desired=callRows.filter(r=>r.Statut_presence),errors=D.participantErrors(desired,[]);
   if(errors.length)throw Error(errors.join(' '));
   const president=num($('#president').value),secretary=num($('#secretary').value),members=num($('#members').value);
+  if(!president||!secretary)throw Error('Renseignez obligatoirement le président et le secrétaire de séance.');
   if(members<ids.length)throw Error('Le nombre de membres ne peut être inférieur au nombre d’élus de cet appel.');
-  for(const [id,title] of [[president,'président'],[secretary,'secrétaire']])if(id&&!desired.some(r=>r.Elu===id&&r.Statut_presence===D.PRESENT))throw Error('Le '+title+' doit être présent. Vous pouvez laisser ce champ vide pendant l’appel.');
+  for(const [id,title] of [[president,'président'],[secretary,'secrétaire']])if(!desired.some(r=>r.Elu===id&&r.Statut_presence===D.PRESENT))throw Error('Le '+title+' doit être marqué présent dans l’appel.');
   await store.fresh();await store.apply([['UpdateRecord','SEANCES_CM',sessionId,{President_seance:president,Secretaire_seance:secretary,Nb_membres_exercice:members}],...D.sync('PARTICIPATIONS_SEANCE',old,desired,r=>r.Elu),log('Mise à jour de l’appel et des pouvoirs',{Ancienne_valeur:JSON.stringify(old),Nouvelle_valeur:JSON.stringify(desired)})]);hideModal();await refresh();
  });
  function showCall(message=''){
@@ -145,22 +139,8 @@ function settings(){
  $('#proxySearch').oninput=results;$('#cancelProxy').onclick=()=>showCall();
  showCall();
 }
-function addPoint(){
- if(!leave())return;
- const unattached=db.DELIBERATIONS.filter(d=>d.Seance===sessionId&&!db.ORDRE_DU_JOUR.some(p=>p.Deliberation===d.id));
- openModal('Ajouter un point à l’ordre du jour',`<div class="modal-grid"><label class="full">Type<select id="pointType"><option value="new">Nouvelle délibération</option><option value="info">Information sans vote</option>${unattached.length?'<option value="existing">Délibération existante à rattacher</option>':''}</select></label><label id="existingWrap" class="full" hidden>Délibération<select id="existingDelib">${unattached.map(d=>option(d.id,d.Objet)).join('')}</select></label><div class="full" id="titleWrap">${field('newTitle','Objet / intitulé','text','',true)}</div><label>Rapporteur<select id="newRapporteur">${personOptions(0,'Non renseigné')}</select></label><label>Service<select id="newUnit">${option(0,'Non renseigné')}${db.UNITES_ORGANISATIONNELLES.map(u=>option(u.id,u.Nom_service)).join('')}</select></label></div>`,async()=>{
- operator();await store.fresh();const type=$('#pointType').value,title=$('#newTitle').value.trim();let did=type==='existing'?num($('#existingDelib').value):0;
- if(type==='new'){
-  const res=await store.apply([['AddRecord','DELIBERATIONS',null,{Seance:sessionId,Objet:title,Rapporteur:num($('#newRapporteur').value),Unite_redactrice:num($('#newUnit').value),Statut_deliberation:'Brouillon service',Decision_seance:'En attente',Mode_scrutin:'Vote à main levée'}]]);did=num(res.retValues?.[0]);if(!did)throw Error('Délibération créée, mais identifiant non reçu. Actualisez avant de poursuivre.');
- }
- try{
- const res=await store.apply([['AddRecord','ORDRE_DU_JOUR',null,{Seance:sessionId,Ordre_point:Math.max(0,...points().map(p=>p.Ordre_point||0))+1,Type_point:type==='info'?'Information au Conseil':'Délibération',Deliberation:did,Intitule_point:type==='existing'?unattached.find(d=>d.id===did)?.Objet||'':title,Statut_suivi:'À venir'}]]);pointId=num(res.retValues?.[0]);
- }catch(e){throw Error(type==='new'?'La délibération a été créée, mais son rattachement a échoué. Actualisez puis choisissez « Délibération existante à rattacher ». '+e.message:e.message);}
- hideModal();await refresh();
- });
- $('#pointType').onchange=()=>{const existing=$('#pointType').value==='existing';$('#existingWrap').hidden=!existing;$('#titleWrap').hidden=existing;$('#newTitle').required=!existing;};
-}
 async function saveVote(validate){
+ if(validate&&(!session().President_seance||!session().Secretaire_seance))throw Error('Renseignez le président et le secrétaire dans l’appel avant toute validation.');
  if(validate&&$('#liveSessionStatus').textContent==='Suspendue')throw Error('Reprenez la séance avant de valider un résultat.');
  if(locked())throw Error('Utilisez « Modifier le résultat » avant de corriger un point validé.');
  const actor=operator(),voters=currentVoters(),t=D.tally(voters,draft),o=D.outcome(draft,t),d=delib(),isVote=draft.decision==='Vote';
@@ -219,7 +199,7 @@ function rare(type){
  });
 }
 function bind(){
- $('#newSessionBtn').onclick=()=>execute(async()=>newSession());$('#openSettingsBtn').onclick=()=>execute(async()=>settings());$('#newPointBtn').onclick=()=>execute(async()=>addPoint());
+ $('#openSettingsBtn').onclick=()=>execute(async()=>settings());
  $('#refreshBtn').onclick=()=>{if(leave())execute(refresh);};
  $('#sessionPicker').onchange=()=>{if(!leave()){$('#sessionPicker').value=sessionId;return;}sessionId=num($('#sessionPicker').value);pointId=points()[0]?.id||0;dirty=false;editing=false;restore();render();};
  $('#prevPointBtn').onclick=()=>{const ps=points(),i=ps.findIndex(p=>p.id===pointId);if(i>0)navigate(ps[i-1].id);};$('#nextPointBtn').onclick=()=>{const ps=points(),i=ps.findIndex(p=>p.id===pointId);if(i<ps.length-1)navigate(ps[i+1].id);};
@@ -247,7 +227,7 @@ window.addEventListener('DOMContentLoaded',()=>{
  grist.onOptions((options,interaction)=>{
   // Current Grist API uses accessLevel; accept the legacy spelling only when absent.
   accessGranted=(interaction?.accessLevel ?? interaction?.access_level)==='full';
-  if(!accessGranted){$('#connectedContent').hidden=true;$$('#sessionPicker,#operatorPicker,#newSessionBtn,#refreshBtn').forEach(e=>e.disabled=true);status('warning','Autorisez l’accès complet au document dans les options du widget Grist.');return;}
+  if(!accessGranted){$('#connectedContent').hidden=true;$$('#sessionPicker,#refreshBtn').forEach(e=>e.disabled=true);status('warning','Autorisez l’accès complet au document dans les options du widget Grist.');return;}
   $('#refreshBtn').disabled=false;
   if(!started){started=true;execute(refresh);}else if(db)render();
  });

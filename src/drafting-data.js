@@ -24,7 +24,13 @@
  }
  function sessionOpen(db,id){if(!id)return true;const s=db.SEANCES_CM.find(s=>s.id===id);return !!s&&!s.Date_envoi_convocation&&!s.Ordre_du_jour_valide&&['','Préparation','Projets en cours de rédaction','Validation DGS'].includes(s.Statut_seance||'')&&!db.ORDRE_DU_JOUR.some(p=>p.Seance===id&&p.Statut_suivi&&p.Statut_suivi!=='À venir');}
  function locked(db,id){if(!id)return false;const s=scope(db,id),d=s.DELIBERATIONS[0];return !d || !['','Brouillon service','Corrections demandées'].includes(d.Statut_deliberation||'') || !sessionOpen(db,d.Seance) || s.ORDRE_DU_JOUR.some(p=>!sessionOpen(db,p.Seance)) || s.CONTENUS_ARTICLES.length>0;}
- function plan(db,id,p){
+ function plan(db,id,p,originId=0){
+  if(originId){
+   const source=db.SUJETS_PREVISIONNELS?.find(s=>s.id===originId);
+   if(!source)throw Error('Le sujet prévu n’existe plus. Actualisez.');
+   if(id||source.Deliberation)throw Error('Ce sujet est déjà lié à une délibération. Actualisez pour ouvrir le projet existant.');
+   if(!sessionOpen(db,source.Seance))throw Error('La séance du sujet prévu est verrouillée.');
+  }
   if(locked(db,id))throw Error('Ce projet est en lecture seule dans la page de rédaction.');
   if(!p.general.objet.trim())throw Error('Renseignez au moins l’objet pour enregistrer le brouillon.');
   if(!sessionOpen(db,p.general.seance))throw Error('Cette séance est verrouillée ou déjà engagée. Choisissez une séance en préparation.');
@@ -59,6 +65,7 @@
   });
   // Delete descendants first, including cells removed by column or row deletion.
   for(const t of ['CELLULES_TABLEAUX','LIGNES_TABLEAUX','COLONNES_TABLEAUX','TABLEAUX','ARTICLES','CONSIDERANTS','VISAS','EXPOSE_MOTIFS'])for(const r of old[t])if(!keep[t]?.has(r.id))actions.push(['RemoveRecord',t,r.id]);
+  if(originId)actions.push(['UpdateRecord','SUJETS_PREVISIONNELS',originId,{Deliberation:did}]);
   if(actions.length)actions.push(['AddRecord','JOURNAL_ACTIONS',null,{Date_action:Date.now()/1000,Utilisateur:0,Type_action:id?'Modification':'Création',Deliberation:did,Seance:general.seance||0,Description:id?'Enregistrement du projet de délibération':'Création du projet de délibération',Automatique:false,Niveau:'Information'}]);
   return {id:did,actions};
  }

@@ -1,6 +1,6 @@
 (function(){
  'use strict';
- let routePending=true;const route=new URLSearchParams(location.search);
+ let originId=0,originSnapshot='',routePending=true;const route=new URLSearchParams(location.search);
  const D=window.DraftingData,E=window.DeliberationEditor,$=s=>document.querySelector(s);
  let db=Object.fromEntries(D.tables.map(t=>[t,[]])),id=0,baseline='',originalScope='',access=false,busy=false,initialized=false,loadFailed=false;
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -22,18 +22,30 @@
   $('#projectPicker').value=String(id);
  }
  function show(next){
-  id=next;const loaded=D.load(db,id);if(!id){const units=db.UNITES_ORGANISATIONNELLES.filter(u=>['dgs','direction generale des services'].includes((u.Nom_service||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()));if(units.length===1)loaded.fields.Unite_redactrice=units[0].id;}E.load(loaded);baseline=fingerprint();originalScope=JSON.stringify(D.scope(db,id));list();controls();
+  originId=0;originSnapshot='';id=next;const loaded=D.load(db,id);if(!id){const units=db.UNITES_ORGANISATIONNELLES.filter(u=>['dgs','direction generale des services'].includes((u.Nom_service||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()));if(units.length===1)loaded.fields.Unite_redactrice=units[0].id;}E.load(loaded);baseline=fingerprint();originalScope=JSON.stringify(D.scope(db,id));list();controls();
  }
  async function fetchDB(){
-  const results=await Promise.allSettled(D.tables.map(t=>grist.docApi.fetchTable(t)));
-  const errors=results.flatMap((r,i)=>r.status==='rejected'?[`${D.tables[i]} : ${r.reason?.message||r.reason}`]:[]);
+  const fetchTables=route.has('subject')?[...D.tables,'SUJETS_PREVISIONNELS']:D.tables;
+  const results=await Promise.allSettled(fetchTables.map(t=>grist.docApi.fetchTable(t)));
+  const errors=results.flatMap((r,i)=>r.status==='rejected'?[`${fetchTables[i]} : ${r.reason?.message||r.reason}`]:[]);
   if(errors.length)throw Error('Lecture Grist impossible. '+errors.join(' ; '));
   if(!access)throw Error('L’accès complet au document est requis.');
-  return Object.fromEntries(results.map((r,i)=>[D.tables[i],D.rows(r.value)]));
+  return Object.fromEntries(results.map((r,i)=>[fetchTables[i],D.rows(r.value)]));
  }
  async function run(fn){if(busy)return;busy=true;controls();try{await fn();}catch(e){status('error',e.message);}finally{busy=false;controls();}}
  function mayLeave(){return !dirty()||window.confirm('Abandonner les modifications non enregistrées ?');}
- async function refresh(){if(!mayLeave())return;await run(async()=>{const fresh=await fetchDB();db=fresh;loadFailed=false;let target=db.DELIBERATIONS.some(d=>d.id===id)?id:0;if(routePending&&route.has('draft')){target=Number(route.get('draft'));if(!db.DELIBERATIONS.some(d=>d.id===target))throw Error('Le projet demandé est introuvable.');}show(target);if(routePending&&!target&&route.has('session')){const sid=Number(route.get('session'));if(!db.SEANCES_CM.some(s=>s.id===sid))throw Error('La séance demandée est introuvable.');$('#seance').value=String(sid);baseline=fingerprint();controls();}routePending=false;initialized=true;status('connected','Connecté à Grist — rédaction des projets de délibérations.');});}
+ async function refresh(){if(!mayLeave())return;await run(async()=>{
+  const pendingOrigin=originId;db=await fetchDB();loadFailed=false;let target=db.DELIBERATIONS.some(d=>d.id===id)?id:0,source=null;
+  if(routePending&&route.has('draft')){target=Number(route.get('draft'));if(!db.DELIBERATIONS.some(d=>d.id===target))throw Error('Le projet demandé est introuvable.');}
+  if((routePending&&route.has('subject'))||(!id&&pendingOrigin)){
+   const sid=pendingOrigin||Number(route.get('subject'));source=db.SUJETS_PREVISIONNELS.find(s=>s.id===sid);if(!source)throw Error('Le sujet demandé est introuvable.');
+   target=source.Deliberation||0;if(target&&!db.DELIBERATIONS.some(d=>d.id===target))throw Error('Le projet lié au sujet est introuvable.');
+  }
+  show(target);
+  if(source&&!target){originId=source.id;originSnapshot=JSON.stringify(source);$('#objet').value=source.Intitule||'';$('#preparationNote').value=source.Note||'';$('#seance').value=String(source.Seance||'');E.renderAll();baseline=fingerprint();controls();}
+  else if(routePending&&!target&&route.has('session')){const sid=Number(route.get('session'));if(!db.SEANCES_CM.some(s=>s.id===sid))throw Error('La séance demandée est introuvable.');$('#seance').value=String(sid);baseline=fingerprint();controls();}
+  routePending=false;initialized=true;status('connected',originId?'Sujet prérempli — le brouillon sera créé uniquement au clic sur Enregistrer.':'Connecté à Grist — rédaction des projets de délibérations.');
+ });}
  async function save(){
   if(!access||readOnly()||loadFailed)return;
   await run(async()=>{
@@ -41,11 +53,12 @@
    if(!p.general.objet.trim())throw Error('Renseignez l’objet de la délibération avant d’enregistrer.');
    const fresh=await fetchDB();
    if(id&&JSON.stringify(D.scope(fresh,id))!==originalScope)throw Error('Ce projet a été modifié dans Grist depuis son ouverture. Votre saisie est conservée à l’écran. Copiez les passages à garder avant d’actualiser.');
-   const batch=D.plan(fresh,id,p);
+   if(originId&&JSON.stringify(fresh.SUJETS_PREVISIONNELS.find(s=>s.id===originId))!==originSnapshot)throw Error('Ce sujet a été modifié ou déjà utilisé depuis son ouverture. Actualisez avant de poursuivre.');
+   const batch=D.plan(fresh,id,p,originId);
    if(!access)throw Error('L’accès complet au document est requis.');
    if(batch.actions.length)await grist.docApi.applyUserActions(batch.actions);
    // Commit acknowledged: never replay a create if subsequent reloading fails.
-   id=batch.id;baseline=fingerprint();loadFailed=true;
+   id=batch.id;originId=0;originSnapshot='';baseline=fingerprint();loadFailed=true;
    try{db=await fetchDB();loadFailed=false;show(id);status('connected','✓ Projet enregistré dans Grist.');}
    catch(e){status('error','Enregistrement effectué, mais la relecture a échoué. Cliquez sur Actualiser avant de poursuivre. '+e.message);}
   });
@@ -72,7 +85,7 @@
  window.Drafting={readOnly};
  show(0);$('#planningBack').hidden=route.get('from')!=='planning';
  window.addEventListener('DOMContentLoaded',()=>{
-  $('#appVersion').textContent='v0.8.0 · Rédaction';
+  $('#appVersion').textContent='v0.9.0 · Rédaction';
   if(!window.grist||parent===window){initialized=true;status('warning','Aperçu local : vous pouvez essayer la rédaction et les tableaux. Pour enregistrer, ouvrez cette page comme widget Grist avec accès complet.');controls();return;}
   grist.onOptions((options,interaction)=>{
    access=(interaction?.accessLevel??interaction?.access_level)==='full';

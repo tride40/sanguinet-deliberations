@@ -89,13 +89,6 @@
   if(!input.title.trim())throw Error('Renseignez l’intitulé du sujet à prévoir.');
   return {id:sid,actions:[[old?'UpdateRecord':'AddRecord','SUJETS_PREVISIONNELS',old?old.id:null,{Seance:sid,Intitule:input.title.trim(),Note:input.note||''}],event(sid,old?'Modification ou déplacement d’un sujet à prévoir':'Ajout d’un sujet à prévoir')]};
  }
- function startDraftPlan(db,subjectId){
-  const subject=db.SUJETS_PREVISIONNELS.find(s=>s.id===subjectId);if(!subject)throw Error('Ce sujet n’existe plus.');
-  if(subject.Deliberation){if(!db.DELIBERATIONS.some(d=>d.id===subject.Deliberation))throw Error('Le brouillon lié est introuvable.');return {id:subject.Seance,draftId:subject.Deliberation,actions:[]};}
-  if(!open(db,subject.Seance))throw Error('La préparation de la séance est verrouillée.');
-  const draftId=Math.max(0,...db.DELIBERATIONS.map(d=>d.id))+1;
-  return {id:subject.Seance,draftId,actions:[['AddRecord','DELIBERATIONS',draftId,{Objet:subject.Intitule,Seance:subject.Seance,Observations_internes:subject.Note||'',Statut_deliberation:'Brouillon service'}],['UpdateRecord','SUJETS_PREVISIONNELS',subject.id,{Deliberation:draftId}],event(subject.Seance,'Démarrage de la rédaction : '+subject.Intitule,'Création')]};
- }
  function assignPlan(db,draftId,sessionId){
   const draft=db.DELIBERATIONS.find(d=>d.id===draftId);if(!draft)throw Error('Ce brouillon n’existe plus.');
   if(!['','Brouillon service','Corrections demandées','Validé par la DGS'].includes(draft.Statut_deliberation||''))throw Error('Ce projet est déjà engagé dans le circuit de séance.');
@@ -103,5 +96,14 @@
   if(db.ORDRE_DU_JOUR.some(p=>p.Deliberation===draftId))throw Error('Retirez d’abord le projet de son ordre du jour.');
   return {id:sessionId||0,actions:[['UpdateRecord','DELIBERATIONS',draftId,{Seance:sessionId||0}],event(sessionId||0,'Affectation du projet : '+draft.Objet)]};
  }
- const api={tables,points,editable,open,parisDate,localDate,sessionPlan,agendaPlan,lockPlan,schemaPlan,confirmDatePlan,subjectPlan,startDraftPlan,assignPlan};root.PlanningData=api;if(typeof module!=='undefined')module.exports=api;
+ function schedulePlan(db,id,value){
+  const date=parisDate(value),old=db.SEANCES_CM.find(s=>s.id===id);
+  if(id&&(!old||!editable(db,id)))throw Error('Cette séance ne peut plus être modifiée.');
+  if(old?.Date_confirmee&&old.Date_heure_seance!==date)throw Error('Repassez la date en prévision avant de la modifier.');
+  if(db.SEANCES_CM.some(s=>s.id!==id&&s.Date_heure_seance===date))throw Error('Un conseil existe déjà à cette date et cette heure.');
+  const rid=id||Math.max(0,...db.SEANCES_CM.map(s=>s.id))+1,params=db.PARAMETRES_APPLICATION[0]||{};
+  const fields={Date_heure_seance:date,Reference_seance:'CM-'+value.slice(0,10).replaceAll('-',''),Libelle_seance:'Conseil municipal du '+new Date(date*1000).toLocaleString('fr-FR',{timeZone:'Europe/Paris',dateStyle:'short',timeStyle:'short'}),...(!id?{Date_confirmee:false,Lieu_seance:params.Lieu_seance_defaut||'',Nb_membres_exercice:params.Nb_conseillers||db.ELUS.filter(e=>e.Actif).length,Type_seance:'Ordinaire',Publicite_seance:'Publique',Statut_seance:'Préparation',Ordre_du_jour_valide:false}:{})};
+  return {id:rid,actions:[[id?'UpdateRecord':'AddRecord','SEANCES_CM',rid,fields],event(rid,id?'Modification de la date du conseil':'Planification du conseil',id?'Modification':'Création')]};
+ }
+ const api={schedulePlan,tables,points,editable,open,parisDate,localDate,sessionPlan,agendaPlan,lockPlan,schemaPlan,confirmDatePlan,subjectPlan,assignPlan};root.PlanningData=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

@@ -1,6 +1,6 @@
 window.APP_CONFIG = {
   appName: 'Sanguinet – Délibérations',
-  version: '0.4.0',
+  version: '0.5.0',
   mode: 'grist-widget'
 };
 

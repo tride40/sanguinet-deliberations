@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="css/components.css" />
   <link rel="stylesheet" href="css/session.css" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
-  <link rel="stylesheet" href="css/session-live.css" />
 </head>
 <body>
   <div class="session-shell">
@@ -21,49 +20,40 @@
       <div class="topbar-title">Sanguinet <span>— Délibérations</span></div>
       <div class="topbar-actions">
         <div class="user-chip">
-          <div class="avatar">CM</div>
-          <div><strong>Suivi de séance</strong><small>Version 0.5.0 · Grist</small></div>
+          <div class="avatar">IM</div>
+          <div><strong>Isabelle Mathez</strong><small>Direction générale des services</small></div>
         </div>
       </div>
     </header>
 
-    <div id="sessionConnectionStatus" class="connection-status demo">Ouvrez cette page dans un widget Grist avec accès complet.</div>
+    <div id="sessionConnectionStatus" class="connection-status demo">Mode démonstration — données fictives</div>
 
     <main class="session-page">
-      <section class="card live-controls">
-        <label>Séance<select id="sessionPicker" disabled><option>Aucune connexion</option></select></label>
-        <label>Agent de saisie<select id="operatorPicker" disabled><option>Choisir l’agent</option></select></label>
-        <button id="newSessionBtn" class="secondary-btn" disabled>＋ Nouvelle séance</button>
-        <button id="refreshBtn" class="ghost-btn" disabled>Actualiser</button>
-      </section>
-      <p id="liveHelp" class="empty-note">Les données réelles seront chargées depuis Grist. Aucun enregistrement n’est effectué au chargement.</p>
-      <div id="connectedContent" hidden>
       <section class="session-summary card">
         <div class="session-summary-main">
           <div class="session-date-icon">▣</div>
           <div>
-            <strong id="sessionTitle">Séance</strong>
-            <small id="sessionSubtitle"></small>
+            <strong id="sessionTitle">Conseil municipal du 28 septembre 2026</strong>
+            <small id="sessionSubtitle">Lundi 28 septembre 2026 — 20h00</small>
           </div>
-          <span id="liveSessionStatus" class="status-pill live">Préparation</span>
+          <span class="status-pill live">En cours</span>
         </div>
         <div class="session-kpis">
           <div class="summary-kpi ok"><span>✓</span><div><small>Quorum</small><strong id="quorumLabel">Atteint</strong></div></div>
           <div class="summary-kpi"><span>👥</span><div><small>Membres</small><strong id="membersCount">27</strong></div></div>
           <div class="summary-kpi"><span>●</span><div><small>Présents</small><strong id="presentCount">22</strong></div></div>
           <div class="summary-kpi"><span>▤</span><div><small>Pouvoirs</small><strong id="proxyCount">3</strong></div></div>
-          <div class="summary-kpi wide"><span>♟</span><div><small>Président</small><strong id="presidentLabel">—</strong></div></div>
-          <div class="summary-kpi wide"><span>✦</span><div><small>Secrétaire</small><strong id="secretaryLabel">—</strong></div></div>
+          <div class="summary-kpi wide"><span>♟</span><div><small>Président</small><strong id="presidentLabel">M. le Maire</strong></div></div>
+          <div class="summary-kpi wide"><span>✦</span><div><small>Secrétaire</small><strong id="secretaryLabel">Mme Claire Martin</strong></div></div>
         </div>
         <button id="openSettingsBtn" class="session-settings-btn">⚙ Voir / modifier les paramètres</button>
       </section>
 
       <section class="session-toolbar">
-        <button id="newPointBtn" class="secondary-btn">＋ Ajouter un point</button>
+        <a href="index.html" class="ghost-btn no-underline">← Rédaction</a>
         <div class="progress-meta"><strong id="progressText">Point 6 sur 14</strong><span id="pointStatus" class="status-pill current">En cours</span></div>
       </section>
 
-      <p id="emptyAgenda" class="card" hidden>Aucun point pour cette séance. Cliquez sur « Ajouter un point ».</p>
       <div class="session-layout">
         <aside class="agenda-panel card">
           <div class="panel-title"><div><h2>Ordre du jour</h2><small id="agendaCount">14 points</small></div></div>
@@ -90,12 +80,12 @@
                 </div>
               </div>
             </div>
-            <h1 id="pointTitle">Point à sélectionner</h1>
-            <p id="pointDescription"></p>
+            <h1 id="pointTitle">Convention de mise à disposition d’un terrain</h1>
+            <p id="pointDescription">Il est proposé au conseil municipal d’approuver la convention de mise à disposition d’un terrain communal.</p>
             <div class="point-meta-grid">
-              <div><small>Rapporteur</small><strong id="pointRapporteur">—</strong></div>
+              <div><small>Rapporteur</small><strong id="pointRapporteur">M. Jean Dupont</strong></div>
               <div><small>Service</small><strong id="pointService">Urbanisme et aménagement</strong></div>
-              <div><small>Référence</small><strong id="pointReference">—</strong></div>
+              <div><small>Référence</small><strong id="pointReference">2026-73</strong></div>
             </div>
           </article>
 
@@ -106,7 +96,6 @@
           </div>
           <article class="card decision-card">
             <div class="section-heading"><div><h2>Décision du Conseil</h2><small>Le résultat est calculé automatiquement à partir des voix.</small></div></div>
-            <label>Mode de scrutin<select id="scrutin"><option>Vote à main levée</option><option>Scrutin public</option><option>Scrutin secret</option></select></label>
             <div id="decisionButtons" class="decision-buttons">
               <button data-decision="Adoptée" class="decision-option active ok"><span>✓</span><strong>Soumis au vote</strong></button>
               <button data-decision="Ajournée" class="decision-option"><span>◷</span><strong>Ajournée</strong></button>
@@ -142,7 +131,7 @@
                 <div><span class="dot grey"></span>NPPV <strong id="nppvCount">0</strong></div>
               </div>
             </div>
-            <div id="tieOptions" class="tie-options" hidden><label>Égalité des voix — départage<select id="tieChoice"><option value="">Préciser le cas de départage</option><option value="for">Voix prépondérante du président : pour</option><option value="against">Voix prépondérante du président : contre</option><option value="none">Aucune voix prépondérante exprimée</option></select></label></div>
+            <div id="tieOptions" class="tie-options" hidden><label>Égalité des voix — départage<select id="tieChoice"><option value="">Préciser le cas de départage</option><option value="for">Voix prépondérante du président : pour</option><option value="against">Voix prépondérante du président : contre</option><option value="none">Scrutin secret ou aucune voix prépondérante exprimée</option></select></label></div>
             <div id="resultBanner" class="result-banner ok"><strong>Adoptée à l’unanimité</strong><span>25 voix pour, 0 contre, 0 abstention.</span></div>
           </article>
 
@@ -152,20 +141,35 @@
           </div>
         </section>
       </div>
-    </div>
     </main>
+
+    <div id="settingsBackdrop" class="drawer-backdrop" hidden></div>
+    <aside id="settingsDrawer" class="settings-drawer" aria-hidden="true">
+      <div class="drawer-header"><div><small>Ouverture de la séance</small><h2>Paramètres de séance</h2></div><button id="closeSettingsBtn" class="modal-close">×</button></div>
+      <p class="drawer-intro">Ces informations sont définies une fois à l’ouverture et restent discrètes pendant la conduite du Conseil.</p>
+      <div class="drawer-fields">
+        <label>Président de séance<select id="settingPresident"></select></label>
+        <label>Secrétaire de séance<select id="settingSecretary"></select></label>
+        <div class="drawer-count-grid">
+          <label>Membres<input id="settingMembers" type="number" min="1" value="27" /></label>
+          <label>Présents<input id="settingPresent" type="number" min="0" value="22" /></label>
+          <label>Pouvoirs<input id="settingProxies" type="number" min="0" value="3" /></label>
+          <label>Absents<input id="settingAbsent" type="number" min="0" value="2" /></label>
+        </div>
+        <div id="drawerQuorum" class="quorum-box ok">✓ Quorum atteint</div>
+        <button id="openSessionBtn" class="primary-btn">▶ Ouvrir / mettre à jour la séance</button>
+      </div>
+    </aside>
 
     <div id="rareModal" class="simple-modal" hidden>
       <div class="simple-modal-card" role="dialog" aria-modal="true" aria-labelledby="rareModalTitle">
-        <div class="drawer-header"><div><small>Sanguinet — Délibérations</small><h2 id="rareModalTitle">Action</h2></div><button id="closeRareModalBtn" class="modal-close" aria-label="Fermer">×</button></div>
-        <div id="modalError" class="connection-status error" role="alert" hidden></div>
-        <form id="modalForm"><div id="rareModalBody" class="rare-modal-body"></div></form>
+        <div class="drawer-header"><div><small>Action exceptionnelle</small><h2 id="rareModalTitle">Action</h2></div><button id="closeRareModalBtn" class="modal-close" aria-label="Fermer">×</button></div>
+        <div id="rareModalBody" class="rare-modal-body"></div>
         <div class="simple-modal-actions"><button id="cancelRareBtn" class="ghost-btn">Annuler</button><button id="confirmRareBtn" class="primary-inline">Enregistrer</button></div>
       </div>
     </div>
   </div>
 
-  <script src="src/session-data.js"></script>
-  <script src="src/session-live.js"></script>
+  <script src="src/session.js"></script>
 </body>
 </html>

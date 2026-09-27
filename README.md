@@ -1,3 +1,7 @@
+# Version 0.5.0 — Suivi de séance connecté
+
+Voir INSTALLATION.md pour l’installation dans Grist et le parcours de test. session.html est maintenant la version connectée ; demo-session.html conserve la démonstration. Aucun fichier de données municipal n’est inclus.
+
 # Sanguinet – Délibérations
 
 Widget Grist autonome pour la rédaction et, à terme, la génération des délibérations du Conseil municipal de Sanguinet.

@@ -193,7 +193,7 @@
   function escapeHtml(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]))}
 
   async function tryGrist(){
-    if(!window.grist){setStatus('demo','Mode démonstration — données fictives.');return;}
+    if(!window.grist||window.parent===window){setStatus('demo','Mode démonstration — données fictives.');return;}
     try{
       grist.ready({requiredAccess:'full'});state.connected=true;setStatus('connected','Connecté à Grist — prototype du suivi de séance.');
       // La connexion complète sera activée après ajout des champs/table de groupes nécessaires.

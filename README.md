@@ -1,9 +1,9 @@
-# Sanguinet – Délibérations v0.7.0
+# Sanguinet – Délibérations v0.8.0
 
-[Installation et utilisation de la planification DGS](PLANIFICATION-v0.7.0.md).
+[Installation et utilisation de la nouvelle planification](PLANIFICATION-v0.8.0.md).
 
-- planning.html : séances et ordre du jour.
-- index.html : rédaction DGS.
-- session.html : suivi de séance conservé en v0.5.3.
+- planning.html : conseils prévisionnels, sujets à prévoir, brouillons et ordre du jour.
+- index.html : rédaction avec ou sans séance.
+- session.html : suivi de séance conservé.
 
-Les guides antérieurs décrivent les anciennes versions ; le guide v0.7.0 fait référence pour le fléchage et le verrouillage des projets.
+La première ouverture propose une activation de la nouvelle structure Grist. Les anciens guides décrivent les versions précédentes.

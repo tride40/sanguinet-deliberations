@@ -42,7 +42,7 @@
    return rid;
   }
   const general=p.general;
-  const did=put('DELIBERATIONS',id,{Objet:general.objet,Seance:general.seance||0,Rapporteur:general.rapporteur||0,Unite_redactrice:general.unite||0,Domaine:general.domaine||'',...(!id?{Statut_deliberation:'Brouillon service'}:{})});
+  const did=put('DELIBERATIONS',id,{Objet:general.objet,...('note' in general?{Observations_internes:general.note||''}:{}),Seance:general.seance||0,Rapporteur:general.rapporteur||0,Unite_redactrice:general.unite||0,Domaine:general.domaine||'',...(!id?{Statut_deliberation:'Brouillon service'}:{})});
   for(const point of old.ORDRE_DU_JOUR)actions.push(['UpdateRecord','ORDRE_DU_JOUR',point.id,{Intitule_point:general.objet,Rapporteur:general.rapporteur||0,Unite_pilote:general.unite||0}]);
   const flags=(rid)=>rid?{}:{Inclure_dossier_preparatoire:true,Inclure_acte_definitif:true};
   [['expose','EXPOSE_MOTIFS','Ordre_paragraphe','Texte_paragraphe','Format_paragraphe','format'],['visas','VISAS','Ordre_visa','Texte_visa','Categorie_visa','category'],['considerants','CONSIDERANTS','Ordre_considerant','Texte_considerant','Categorie_considerant','category']].forEach(([k,t,o,txt,cat,prop])=>p[k].forEach((x,i)=>put(t,x.id,{Deliberation:did,[o]:i+1,[txt]:x.text||'',[cat]:x[prop]||'Autre',...flags(x.id)})));

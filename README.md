@@ -1,5 +1,5 @@
-# Sanguinet – Délibérations v0.6.0
+# Sanguinet – Délibérations v0.6.1
 
-La page de rédaction est disponible dans `index.html`. Consultez [le guide de rédaction et d’installation](REDACTION-v0.6.0.md).
+Voir [la mise à jour des articles](MISE-A-JOUR-v0.6.1.md).
 
-Le suivi de séance (`session.html`) conserve son fonctionnement v0.5.3. Son guide est dans [INSTALLATION.md](INSTALLATION.md).
+Le [guide de rédaction](REDACTION-v0.6.0.md) reste applicable, avec le paramètre d’URL `v=0.6.1`. Le suivi de séance reste à sa version 0.5.3.

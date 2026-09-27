@@ -7,6 +7,20 @@
   const categoriesVisas = ['Code','Loi ou règlement','Délibération antérieure','Décision ou arrêté','Avis ou consultation','Convention ou contrat','Document annexé','Autre'];
   const categoriesCons = ['Contexte','Motif juridique','Motif administratif','Motif financier','Motif technique','Intérêt général','Nécessité de la décision','Autre'];
   const categoriesArticles = ['Prise d’acte','Approbation','Autorisation','Décision','Fixation d’un montant ou tarif','Attribution','Modification','Abrogation','Mandat donné au Maire','Disposition financière','Autre'];
+  const articleVerbs = {'Prise d’acte':'De prendre acte','Approbation':'D’approuver','Autorisation':'D’autoriser','Décision':'De décider','Fixation d’un montant ou tarif':'De fixer','Attribution':'D’attribuer','Modification':'De modifier','Abrogation':'D’abroger','Mandat donné au Maire':'De donner mandat au Maire','Disposition financière':'De prévoir'};
+  // The full sentence remains in Texte_article; the fixed prefix is only a UI aid.
+  function withoutPrefix(text,prefix){
+    const normalized=String(text||'').replace(/'/g,'’');
+    if(prefix&&normalized.toLocaleLowerCase('fr').startsWith(prefix.toLocaleLowerCase('fr'))&&(!normalized[prefix.length]||/\s/.test(normalized[prefix.length])))return String(text).slice(prefix.length).replace(/^\s+/, '');
+    return null;
+  }
+  function articleParts(item){const prefix=articleVerbs[item.category]||'',body=withoutPrefix(item.text,prefix);return body===null?{prefix:'',body:item.text||''}:{prefix,body};}
+  function changeArticleType(item,category){
+    const prefix=articleVerbs[category];
+    if(prefix){let body=item.text||'';for(const verb of Object.values(articleVerbs)){const rest=withoutPrefix(body,verb);if(rest!==null){body=rest;break;}}item.text=prefix+(body?' '+body:'');}
+    item.category=category;
+  }
+  function articleInput(target){const prefix=target.dataset.prefix||'';const body=prefix?(withoutPrefix(target.value,prefix)??target.value):target.value;return prefix?prefix+(body?' '+body:''):body;}
 
   function escapeHtml(v=''){return String(v).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
   function options(values, selected){return values.map(v=>`<option ${v===selected?'selected':''}>${escapeHtml(v)}</option>`).join('');}
@@ -59,8 +73,9 @@
   function renderArticles(){
     const el=document.getElementById('articlesList'); el.innerHTML='';
     state.articles.forEach((item,i)=>{
+      const parts=articleParts(item);
       const row=document.createElement('div'); row.className='article'; row.draggable=true; row.dataset.index=i; row.dataset.key='articles';
-      row.innerHTML=`<div class="article-head"><div><span class="drag">⋮⋮</span><span class="article-title">Article ${i+1}</span></div><button class="mini-btn" data-del="articles:${i}">🗑</button></div><div class="article-meta"><select data-prop="category" data-key="articles" data-index="${i}">${options(categoriesArticles,item.category)}</select><input placeholder="Titre facultatif" value="${escapeHtml(item.title||'')}" data-prop="title" data-key="articles" data-index="${i}"></div><textarea data-prop="text" data-key="articles" data-index="${i}">${escapeHtml(item.text)}</textarea><div class="article-table-tools"><button class="table-btn" type="button" onclick="TableEditor.open(${i},0)">▦ ${item.tables?.length ? `Tableaux (${item.tables.length})` : 'Insérer un tableau'}</button><button class="table-chip" type="button" onclick="TableEditor.open(${i},${item.tables?.length||0})">+ Autre tableau</button>${(item.tables||[]).slice(1).map((t,ti)=>`<button class="table-chip" type="button" onclick="TableEditor.open(${i},${ti+1})">Tableau ${ti+2}</button>`).join('')}</div>`;
+      row.innerHTML=`<div class="article-head"><div><span class="drag">⋮⋮</span><span class="article-title">Article ${i+1}</span></div><button class="mini-btn" data-del="articles:${i}">🗑</button></div><div class="article-meta"><select data-prop="category" data-key="articles" data-index="${i}">${options(categoriesArticles,item.category)}</select><input placeholder="Titre facultatif" value="${escapeHtml(item.title||'')}" data-prop="title" data-key="articles" data-index="${i}"></div><div class="prefix-input article-prefix">${parts.prefix?`<span>${escapeHtml(parts.prefix)}</span>`:''}<textarea aria-label="Texte de l’article ${i+1}" data-prefix="${escapeHtml(parts.prefix)}" data-prop="text" data-key="articles" data-index="${i}" placeholder="Rédigez la suite de l’article…">${escapeHtml(parts.body)}</textarea></div><div class="article-table-tools"><button class="table-btn" type="button" onclick="TableEditor.open(${i},0)">▦ ${item.tables?.length ? `Tableaux (${item.tables.length})` : 'Insérer un tableau'}</button><button class="table-chip" type="button" onclick="TableEditor.open(${i},${item.tables?.length||0})">+ Autre tableau</button>${(item.tables||[]).slice(1).map((t,ti)=>`<button class="table-chip" type="button" onclick="TableEditor.open(${i},${ti+1})">Tableau ${ti+2}</button>`).join('')}</div>`;
       el.appendChild(row);
     });
   }
@@ -90,7 +105,7 @@
       ['Exposé des motifs',state.expose.some(x=>x.text.trim())],
       ['Au moins un visa',state.visas.some(x=>x.text.trim())],
       ['Au moins un considérant',state.considerants.some(x=>x.text.trim())],
-      ['Au moins un article',state.articles.some(x=>x.text.trim())]
+      ['Au moins un article',state.articles.some(x=>articleParts(x).body.trim())]
     ];
     const ul=document.getElementById('checklist'); ul.innerHTML='';
     checks.forEach(([label,ok])=>{const li=document.createElement('li');li.innerHTML=`<span class="${ok?'ok':'warn'}">●</span>${label}`;ul.appendChild(li)});
@@ -122,11 +137,11 @@
     
   });
   document.addEventListener('input',e=>{
-    if(e.target.dataset.key){const item=state[e.target.dataset.key][Number(e.target.dataset.index)];if(item)item[e.target.dataset.prop||'text']=e.target.value;refreshCounts();}
+    if(e.target.dataset.key){if(e.target.dataset.key==='articles'&&e.target.dataset.prop==='category')return;const item=state[e.target.dataset.key][Number(e.target.dataset.index)];if(item)item[e.target.dataset.prop||'text']=e.target.dataset.key==='articles'&&e.target.dataset.prop==='text'?articleInput(e.target):e.target.value;refreshCounts();}
     if(['objet','seance','rapporteur','unite','domaine','statut'].includes(e.target.id)) refreshCounts();
   });
   document.addEventListener('change',e=>{
-    if(e.target.dataset.key){const item=state[e.target.dataset.key][Number(e.target.dataset.index)];if(item)item[e.target.dataset.prop]=e.target.value;}
+    if(e.target.dataset.key){const item=state[e.target.dataset.key][Number(e.target.dataset.index)];if(item){if(e.target.dataset.key==='articles'&&e.target.dataset.prop==='category'){changeArticleType(item,e.target.value);renderAll();return;}item[e.target.dataset.prop]=e.target.dataset.key==='articles'&&e.target.dataset.prop==='text'?articleInput(e.target):e.target.value;}}
     refreshCounts();
   });
 

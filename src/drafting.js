@@ -70,7 +70,7 @@
  window.Drafting={readOnly};
  show(0);
  window.addEventListener('DOMContentLoaded',()=>{
-  $('#appVersion').textContent='v0.6.1 · Rédaction';
+  $('#appVersion').textContent='v0.6.2 · Rédaction';
   if(!window.grist||parent===window){initialized=true;status('warning','Aperçu local : vous pouvez essayer la rédaction et les tableaux. Pour enregistrer, ouvrez cette page comme widget Grist avec accès complet.');controls();return;}
   grist.onOptions((options,interaction)=>{
    access=(interaction?.accessLevel??interaction?.access_level)==='full';

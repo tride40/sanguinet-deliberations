@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sanguinet – Suivi de séance</title>
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/session.css" />
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+</head>
+<body>
+  <div class="session-shell">
+    <header class="topbar session-topbar">
+      <div class="brand">
+        <div class="brand-mark">SANGUINET</div>
+        <div class="brand-sub">l’esprit village</div>
+      </div>
+      <div class="topbar-title">Sanguinet <span>— Délibérations</span></div>
+      <div class="topbar-actions">
+        <div class="user-chip">
+          <div class="avatar">IM</div>
+          <div><strong>Isabelle Mathez</strong><small>Direction générale des services</small></div>
+        </div>
+      </div>
+    </header>
+
+    <div id="sessionConnectionStatus" class="connection-status demo">Mode démonstration — données fictives</div>
+
+    <main class="session-page">
+      <section class="session-summary card">
+        <div class="session-summary-main">
+          <div class="session-date-icon">▣</div>
+          <div>
+            <strong id="sessionTitle">Conseil municipal du 28 septembre 2026</strong>
+            <small id="sessionSubtitle">Lundi 28 septembre 2026 — 20h00</small>
+          </div>
+          <span class="status-pill live">En cours</span>
+        </div>
+        <div class="session-kpis">
+          <div class="summary-kpi ok"><span>✓</span><div><small>Quorum</small><strong id="quorumLabel">Atteint</strong></div></div>
+          <div class="summary-kpi"><span>👥</span><div><small>Membres</small><strong id="membersCount">27</strong></div></div>
+          <div class="summary-kpi"><span>●</span><div><small>Présents</small><strong id="presentCount">22</strong></div></div>
+          <div class="summary-kpi"><span>▤</span><div><small>Pouvoirs</small><strong id="proxyCount">3</strong></div></div>
+          <div class="summary-kpi wide"><span>♟</span><div><small>Président</small><strong id="presidentLabel">M. le Maire</strong></div></div>
+          <div class="summary-kpi wide"><span>✦</span><div><small>Secrétaire</small><strong id="secretaryLabel">Mme Claire Martin</strong></div></div>
+        </div>
+        <button id="openSettingsBtn" class="session-settings-btn">⚙ Voir / modifier les paramètres</button>
+      </section>
+
+      <section class="session-toolbar">
+        <a href="index.html" class="ghost-btn no-underline">← Rédaction</a>
+        <div class="progress-meta"><strong id="progressText">Point 6 sur 14</strong><span id="pointStatus" class="status-pill current">En cours</span></div>
+      </section>
+
+      <div class="session-layout">
+        <aside class="agenda-panel card">
+          <div class="panel-title"><div><h2>Ordre du jour</h2><small id="agendaCount">14 points</small></div></div>
+          <div id="agendaList" class="agenda-list"></div>
+        </aside>
+
+        <section class="session-main">
+          <article class="card point-card">
+            <div class="point-nav-row">
+              <button id="prevPointBtn" class="circle-btn" aria-label="Point précédent">‹</button>
+              <div class="point-number" id="pointNumber">06</div>
+              <button id="nextPointBtn" class="circle-btn" aria-label="Point suivant">›</button>
+              <div class="spacer"></div>
+              <div class="rare-actions-wrap">
+                <button id="moreActionsBtn" class="secondary-btn" aria-controls="moreActionsMenu" aria-expanded="false">••• Autres actions</button>
+                <div id="moreActionsMenu" class="rare-actions-menu" hidden>
+                  <button data-rare="amendment">＋ Ajouter un amendement</button>
+                  <button data-rare="attendance">👥 Signaler une arrivée / un départ</button>
+                  <button data-rare="proxy">▤ Modifier un pouvoir</button>
+                  <button data-rare="nppv">⊘ Déclarer une non-participation</button>
+                  <hr />
+                  <button data-rare="note">▧ Ajouter une observation de séance</button>
+                  <button data-rare="suspend" class="danger-text">⏸ Suspendre la séance</button>
+                </div>
+              </div>
+            </div>
+            <h1 id="pointTitle">Convention de mise à disposition d’un terrain</h1>
+            <p id="pointDescription">Il est proposé au conseil municipal d’approuver la convention de mise à disposition d’un terrain communal.</p>
+            <div class="point-meta-grid">
+              <div><small>Rapporteur</small><strong id="pointRapporteur">M. Jean Dupont</strong></div>
+              <div><small>Service</small><strong id="pointService">Urbanisme et aménagement</strong></div>
+              <div><small>Référence</small><strong id="pointReference">2026-73</strong></div>
+            </div>
+          </article>
+
+          <div id="validationNotice" class="validation-notice" hidden>
+            <span id="validationMessage"></span>
+            <button id="editValidatedBtn" class="secondary-btn">Modifier le résultat</button>
+            <button id="cancelEditBtn" class="ghost-btn" hidden>Annuler la modification</button>
+          </div>
+          <article class="card decision-card">
+            <div class="section-heading"><div><h2>Décision du Conseil</h2><small>Le résultat est calculé automatiquement à partir des voix.</small></div></div>
+            <div id="decisionButtons" class="decision-buttons">
+              <button data-decision="Adoptée" class="decision-option active ok"><span>✓</span><strong>Soumis au vote</strong></button>
+              <button data-decision="Ajournée" class="decision-option"><span>◷</span><strong>Ajournée</strong></button>
+              <button data-decision="Retirée" class="decision-option"><span>−</span><strong>Retirée</strong></button>
+            </div>
+
+            <div id="voteModeArea" class="vote-mode-area">
+              <h3>Mode de saisie du vote</h3>
+              <div class="vote-mode-buttons">
+                <button data-mode="unanimity" class="vote-mode active"><span>✓</span><strong>Unanimité</strong><small>Un clic, tous les votants pour</small></button>
+                <button data-mode="groups" class="vote-mode"><span>👥</span><strong>Par groupes</strong><small>Majorité et groupes minoritaires</small></button>
+              </div>
+            </div>
+          </article>
+
+          <article id="groupsPanel" class="card conditional-panel" hidden>
+            <div class="section-heading"><div><h2>Vote par groupes politiques</h2><small>Appliquer un choix à tout un groupe, puis corriger uniquement les exceptions.</small></div><button id="showExceptionsBtn" class="exceptions-btn" aria-controls="detailPanel">Ajuster les votes individuels</button></div>
+            <div id="groupsGrid" class="groups-grid"></div>
+          </article>
+
+          <article id="detailPanel" class="card conditional-panel" hidden>
+            <div class="section-heading"><div><h2>Exceptions individuelles</h2><small>Les votes reprennent le choix du groupe. Ajustez seulement les exceptions ; elles sont conservées si le vote du groupe change.</small></div></div>
+            <div id="voterTable" class="voter-table"></div>
+          </article>
+
+          <article class="card result-card">
+            <div class="result-main">
+              <div class="result-circle" id="resultCircle"><strong id="voterTotal">25</strong><small>votants</small></div>
+              <div class="result-breakdown">
+                <div><span class="dot green"></span>Pour <strong id="forCount">25</strong></div>
+                <div><span class="dot red"></span>Contre <strong id="againstCount">0</strong></div>
+                <div><span class="dot amber"></span>Abstentions <strong id="abstainCount">0</strong></div>
+                <div><span class="dot grey"></span>NPPV <strong id="nppvCount">0</strong></div>
+              </div>
+            </div>
+            <div id="tieOptions" class="tie-options" hidden><label>Égalité des voix — départage<select id="tieChoice"><option value="">Préciser le cas de départage</option><option value="for">Voix prépondérante du président : pour</option><option value="against">Voix prépondérante du président : contre</option><option value="none">Scrutin secret ou aucune voix prépondérante exprimée</option></select></label></div>
+            <div id="resultBanner" class="result-banner ok"><strong>Adoptée à l’unanimité</strong><span>25 voix pour, 0 contre, 0 abstention.</span></div>
+          </article>
+
+          <div class="session-footer-actions">
+            <button id="saveDraftBtn" class="ghost-btn">Enregistrer sans passer au point suivant</button>
+            <button id="validateNextBtn" class="primary-next">Valider le résultat et passer au point suivant →</button>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <div id="settingsBackdrop" class="drawer-backdrop" hidden></div>
+    <aside id="settingsDrawer" class="settings-drawer" aria-hidden="true">
+      <div class="drawer-header"><div><small>Ouverture de la séance</small><h2>Paramètres de séance</h2></div><button id="closeSettingsBtn" class="modal-close">×</button></div>
+      <p class="drawer-intro">Ces informations sont définies une fois à l’ouverture et restent discrètes pendant la conduite du Conseil.</p>
+      <div class="drawer-fields">
+        <label>Président de séance<select id="settingPresident"></select></label>
+        <label>Secrétaire de séance<select id="settingSecretary"></select></label>
+        <div class="drawer-count-grid">
+          <label>Membres<input id="settingMembers" type="number" min="1" value="27" /></label>
+          <label>Présents<input id="settingPresent" type="number" min="0" value="22" /></label>
+          <label>Pouvoirs<input id="settingProxies" type="number" min="0" value="3" /></label>
+          <label>Absents<input id="settingAbsent" type="number" min="0" value="2" /></label>
+        </div>
+        <div id="drawerQuorum" class="quorum-box ok">✓ Quorum atteint</div>
+        <button id="openSessionBtn" class="primary-btn">▶ Ouvrir / mettre à jour la séance</button>
+      </div>
+    </aside>
+
+    <div id="rareModal" class="simple-modal" hidden>
+      <div class="simple-modal-card" role="dialog" aria-modal="true" aria-labelledby="rareModalTitle">
+        <div class="drawer-header"><div><small>Action exceptionnelle</small><h2 id="rareModalTitle">Action</h2></div><button id="closeRareModalBtn" class="modal-close" aria-label="Fermer">×</button></div>
+        <div id="rareModalBody" class="rare-modal-body"></div>
+        <div class="simple-modal-actions"><button id="cancelRareBtn" class="ghost-btn">Annuler</button><button id="confirmRareBtn" class="primary-inline">Enregistrer</button></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="src/session.js"></script>
+</body>
+</html>

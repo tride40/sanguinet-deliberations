@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sanguinet – Délibérations</title>
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">SANGUINET</div>
+        <div class="brand-sub">l’esprit village</div>
+      </div>
+      <div class="topbar-title">Sanguinet <span>— Délibérations</span></div>
+      <div class="topbar-actions">
+        <input class="search" placeholder="Rechercher une délibération…" />
+        <button class="icon-btn" aria-label="Notifications">🔔</button>
+        <div class="user-chip">
+          <div class="avatar">IM</div>
+          <div><strong>Isabelle Mathez</strong><small>Direction générale des services</small></div>
+        </div>
+      </div>
+    </header>
+
+    <div id="connectionStatus" class="connection-status loading">Initialisation du widget…</div>
+
+    <main class="page">
+      <section class="hero">
+        <button class="ghost-btn">← Retour</button>
+        <div class="hero-icon">📄</div>
+        <div>
+          <h1>Rédaction d’une délibération</h1>
+          <p>Créer ou modifier un projet de délibération</p>
+        </div>
+      </section>
+
+      <div class="editor-grid">
+        <section class="editor-column">
+          <article class="card">
+            <div class="card-header"><h2>Informations générales</h2></div>
+            <div class="form-grid two">
+              <label>Séance<select id="seance"><option value="">— Sélectionner —</option></select></label>
+              <label>Objet<input id="objet" value="Approbation des tarifs municipaux 2027" /></label>
+            </div>
+            <div class="form-grid four">
+              <label>Rapporteur<select id="rapporteur"><option value="">— Sélectionner —</option></select></label>
+              <label>Service rédacteur<select id="unite"><option value="">— Sélectionner —</option></select></label>
+              <label>Domaine<select id="domaine"><option>Administration générale</option><option>Finances</option><option>Ressources humaines</option><option>Commande publique</option><option>Urbanisme et aménagement</option><option>Patrimoine et travaux</option><option>Voirie et réseaux</option><option>Environnement et forêt</option><option>Enfance, éducation et jeunesse</option><option>Culture et vie associative</option><option>Police et sécurité</option><option>Intercommunalité</option><option>Action sociale</option><option>Autre</option></select></label>
+              <label>Statut<select id="statut"><option>Brouillon service</option><option>À valider par le responsable</option><option>Transmis à la DGS</option><option>En cours de contrôle DGS</option><option>Corrections demandées</option><option>Validé par la DGS</option><option>Inscrit à l’ordre du jour</option><option>Envoyé aux élus</option></select></label>
+            </div>
+          </article>
+
+          <article class="card section-card" data-section="expose">
+            <div class="card-header"><h2>Exposé des motifs</h2><button class="secondary-btn add-item">+ Ajouter un paragraphe</button></div>
+            <div class="stack-list" id="exposeList"></div>
+          </article>
+
+          <article class="card section-card" data-section="visas">
+            <div class="card-header"><h2>Visas</h2><button class="secondary-btn add-item">+ Ajouter un visa</button></div>
+            <div class="stack-list" id="visasList"></div>
+          </article>
+
+          <article class="card section-card" data-section="considerants">
+            <div class="card-header"><h2>Considérants</h2><button class="secondary-btn add-item">+ Ajouter un considérant</button></div>
+            <div class="stack-list" id="considerantsList"></div>
+          </article>
+
+          <article class="card section-card" data-section="articles">
+            <div class="card-header"><h2>Articles</h2><button class="secondary-btn" id="addArticle">+ Ajouter un article</button></div>
+            <div id="articlesList"></div>
+          </article>
+
+          <article class="card">
+            <div class="card-header"><h2>Annexes</h2><button class="secondary-btn">+ Ajouter une annexe</button></div>
+            <div class="attachments" id="annexesList"></div>
+          </article>
+        </section>
+
+        <aside class="side-column">
+          <article class="card sticky">
+            <div class="card-header"><h2>Aperçu de la délibération</h2><button class="link-btn">Voir l’aperçu complet →</button></div>
+            <div class="summary-list">
+              <div><span>Objet</span><strong id="previewObjet">Approbation des tarifs municipaux 2027</strong></div>
+              <div><span>Exposé des motifs</span><strong id="countExpose">3 paragraphes</strong></div>
+              <div><span>Visas</span><strong id="countVisas">3 visas</strong></div>
+              <div><span>Considérants</span><strong id="countConsiderants">3 considérants</strong></div>
+              <div><span>Articles</span><strong id="countArticles">2 articles</strong></div>
+              <div><span>Annexes</span><strong id="countAnnexes">0 annexe</strong></div>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="card-header"><h2>Contrôle de complétude</h2><div class="score" id="score">8/8</div></div>
+            <ul class="checklist" id="checklist"></ul>
+          </article>
+
+          <article class="card actions-card">
+            <div class="card-header"><h2>Actions</h2></div>
+            <button class="primary-btn" id="saveBtn">💾 Enregistrer</button>
+            <button class="secondary-wide">✓ Soumettre à validation</button>
+            <button class="secondary-wide">📄 Générer l’aperçu Word</button>
+            <button class="secondary-wide">📑 Générer le PDF</button>
+            <a class="ghost-wide demo-link" href="session.html">▶ Tester le suivi de séance</a>
+            <button class="ghost-wide">← Retour au tableau de bord</button>
+            <small class="version" id="appVersion"></small>
+          </article>
+        </aside>
+      </div>
+    </main>
+  </div>
+  <script src="src/app.js"></script>
+  <script src="src/grist.js"></script>
+  <script src="src/deliberation-editor.js"></script>
+  <script src="src/table-editor.js"></script>
+  <script src="src/document-generator.js"></script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+:root{
+  --navy:#0f3768; --blue:#1767d9; --blue-2:#eaf4ff; --text:#0b2348; --muted:#6e7f98;
+  --line:#dbe6f2; --bg:#f6f9fc; --card:#ffffff; --ok:#23a55a; --warn:#f3a61b; --danger:#df3f4f;
+  --shadow:0 8px 24px rgba(21,55,96,.08); --radius:16px;
+}

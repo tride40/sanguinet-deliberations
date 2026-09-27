@@ -211,7 +211,8 @@ window.addEventListener('DOMContentLoaded',()=>{
  if(!window.grist||window.parent===window){status('warning','Version connectée : installez cette URL dans un widget personnalisé Grist, avec accès complet.');$('#liveHelp').innerHTML='Pour tester sans Grist, ouvrez la <a href="demo-session.html">démonstration séparée</a>. Aucune donnée réelle n’est chargée ici.';return;}
  store=new D.Store({fetchTable:t=>{if(!accessGranted)throw Error('Accès complet au document requis.');return grist.docApi.fetchTable(t);},applyUserActions:a=>{if(!accessGranted)throw Error('Accès complet au document requis.');return grist.docApi.applyUserActions(a);}});let started=false;
  grist.onOptions((options,interaction)=>{
-  accessGranted=interaction?.access_level==='full';
+  // Current Grist API uses accessLevel; accept the legacy spelling only when absent.
+  accessGranted=(interaction?.accessLevel ?? interaction?.access_level)==='full';
   if(!accessGranted){$('#connectedContent').hidden=true;$$('#sessionPicker,#operatorPicker,#newSessionBtn,#refreshBtn').forEach(e=>e.disabled=true);status('warning','Autorisez l’accès complet au document dans les options du widget Grist.');return;}
   $('#refreshBtn').disabled=false;
   if(!started){started=true;execute(refresh);}else if(db)render();

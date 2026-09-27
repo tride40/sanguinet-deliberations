@@ -1,4 +1,4 @@
-# Sanguinet — Délibérations v0.5.0
+# Sanguinet — Délibérations v0.5.1
 
 ## Installation, pas à pas
 
@@ -8,7 +8,7 @@ Décompressez toute l’archive. Dans le dépôt `tride40/sanguinet-deliberation
 
 Conservez les dossiers css et src. Les fichiers session.html et index.html doivent être directement à la racine. Validez avec Commit changes, puis attendez la coche verte de la publication GitHub Pages.
 
-La page https://tride40.github.io/sanguinet-deliberations/session.html?v=0.5.0 affiche maintenant, hors de Grist, une invitation à l’installer dans un widget. C’est normal : les élus et séances réels ne sont accessibles qu’à travers Grist. La démonstration séparée reste disponible dans demo-session.html.
+La page https://tride40.github.io/sanguinet-deliberations/session.html?v=0.5.1 affiche maintenant, hors de Grist, une invitation à l’installer dans un widget. C’est normal : les élus et séances réels ne sont accessibles qu’à travers Grist. La démonstration séparée reste disponible dans demo-session.html.
 
 ### 2. Ajouter le suivi de séance dans Grist
 
@@ -18,7 +18,7 @@ Dans votre document Délibérations :
 2. Choisir SEANCES_CM comme table de données, même si elle est vide.
 3. Dans les options du widget, choisir l’URL personnalisée et saisir :
 
-https://tride40.github.io/sanguinet-deliberations/session.html?v=0.5.0
+https://tride40.github.io/sanguinet-deliberations/session.html?v=0.5.1
 
 4. Autoriser l’accès complet au document. Il est nécessaire pour lire les différentes tables et enregistrer les votes ; aucune clé API n’est à créer ni à mettre dans GitHub.
 5. Nommer cette page « Suivi de séance ».
@@ -44,7 +44,7 @@ Une absence de quorum, un pouvoir invalide, une saisie incomplète, une absence 
 
 Le module de rédaction antérieur est conservé à index.html. Pour l’utiliser dans Grist, ajouter un deuxième widget personnalisé lié à DELIBERATIONS avec l’URL :
 
-https://tride40.github.io/sanguinet-deliberations/index.html?v=0.5.0
+https://tride40.github.io/sanguinet-deliberations/index.html?v=0.5.1
 
 Accorder l’accès complet et sélectionner la délibération à rédiger dans la table associée. Le raccordement de rédaction existant est conservé ; cette livraison cible le suivi de séance. La numérotation officielle et les exports définitifs ne font pas partie de ce nouveau raccordement.
 

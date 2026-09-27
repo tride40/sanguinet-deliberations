@@ -1,3 +1,7 @@
+# Correctif 0.5.1
+
+Reconnaissance du niveau d’accès Grist via interaction.accessLevel, avec compatibilité access_level. Le script connecté est versionné dans son URL pour éviter un ancien fichier en cache. Aucun changement de schéma ou de données.
+
 # Version 0.5.0 — Suivi de séance connecté
 
 Voir INSTALLATION.md pour l’installation dans Grist et le parcours de test. session.html est maintenant la version connectée ; demo-session.html conserve la démonstration. Aucun fichier de données municipal n’est inclus.

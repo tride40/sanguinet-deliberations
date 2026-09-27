@@ -22,10 +22,13 @@
   })}));
   return {id,fields,refs:{seances:db.SEANCES_CM,elus:db.ELUS,unites:db.UNITES_ORGANISATIONNELLES},expose:sorted(s.EXPOSE_MOTIFS,'Ordre_paragraphe'),visas:sorted(s.VISAS,'Ordre_visa'),considerants:sorted(s.CONSIDERANTS,'Ordre_considerant'),articles,annexes:sorted(s.ANNEXES,'Ordre_annexe')};
  }
- function locked(db,id){if(!id)return false;const s=scope(db,id),d=s.DELIBERATIONS[0];return !d || !['','Brouillon service','Corrections demandées'].includes(d.Statut_deliberation||'') || s.ORDRE_DU_JOUR.length>0 || s.CONTENUS_ARTICLES.length>0;}
+ function sessionOpen(db,id){if(!id)return true;const s=db.SEANCES_CM.find(s=>s.id===id);return !!s&&!s.Date_envoi_convocation&&!s.Ordre_du_jour_valide&&['','Préparation','Projets en cours de rédaction','Validation DGS'].includes(s.Statut_seance||'')&&!db.ORDRE_DU_JOUR.some(p=>p.Seance===id&&p.Statut_suivi&&p.Statut_suivi!=='À venir');}
+ function locked(db,id){if(!id)return false;const s=scope(db,id),d=s.DELIBERATIONS[0];return !d || !['','Brouillon service','Corrections demandées'].includes(d.Statut_deliberation||'') || !sessionOpen(db,d.Seance) || s.ORDRE_DU_JOUR.some(p=>!sessionOpen(db,p.Seance)) || s.CONTENUS_ARTICLES.length>0;}
  function plan(db,id,p){
   if(locked(db,id))throw Error('Ce projet est en lecture seule dans la page de rédaction.');
   if(!p.general.objet.trim())throw Error('Renseignez au moins l’objet pour enregistrer le brouillon.');
+  if(!sessionOpen(db,p.general.seance))throw Error('Cette séance est verrouillée ou déjà engagée. Choisissez une séance en préparation.');
+  if(id&&db.ORDRE_DU_JOUR.some(point=>point.Deliberation===id&&point.Seance!==p.general.seance))throw Error('Ce projet est inscrit à un ordre du jour. Retirez-le dans la planification avant de changer sa séance.');
   for(const [key,t] of [['seance','SEANCES_CM'],['rapporteur','ELUS'],['unite','UNITES_ORGANISATIONNELLES']])if(p.general[key]&&!db[t].some(r=>r.id===p.general[key]))throw Error('Une référence sélectionnée n’existe plus. Actualisez la page.');
   const next=Object.fromEntries(tables.map(t=>[t,Math.max(0,...db[t].map(r=>r.id))+1]));
   const old=scope(db,id),keep={},actions=[];
@@ -40,6 +43,7 @@
   }
   const general=p.general;
   const did=put('DELIBERATIONS',id,{Objet:general.objet,Seance:general.seance||0,Rapporteur:general.rapporteur||0,Unite_redactrice:general.unite||0,Domaine:general.domaine||'',...(!id?{Statut_deliberation:'Brouillon service'}:{})});
+  for(const point of old.ORDRE_DU_JOUR)actions.push(['UpdateRecord','ORDRE_DU_JOUR',point.id,{Intitule_point:general.objet,Rapporteur:general.rapporteur||0,Unite_pilote:general.unite||0}]);
   const flags=(rid)=>rid?{}:{Inclure_dossier_preparatoire:true,Inclure_acte_definitif:true};
   [['expose','EXPOSE_MOTIFS','Ordre_paragraphe','Texte_paragraphe','Format_paragraphe','format'],['visas','VISAS','Ordre_visa','Texte_visa','Categorie_visa','category'],['considerants','CONSIDERANTS','Ordre_considerant','Texte_considerant','Categorie_considerant','category']].forEach(([k,t,o,txt,cat,prop])=>p[k].forEach((x,i)=>put(t,x.id,{Deliberation:did,[o]:i+1,[txt]:x.text||'',[cat]:x[prop]||'Autre',...flags(x.id)})));
   p.articles.forEach((a,i)=>{

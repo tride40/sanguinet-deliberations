@@ -47,7 +47,7 @@
     const d=data.fields, refs=data.refs;
     document.getElementById('objet').value=d.Objet||'';
     document.getElementById('domaine').value=d.Domaine||'';
-    document.getElementById('statut').value=d.Statut_deliberation||'';
+    document.getElementById('statut').value=d.Statut_deliberation==='Brouillon service'?'Brouillon DGS':(d.Statut_deliberation||'');
     setOptions(document.getElementById('seance'), refs.seances, r=>r.Libelle_seance||r.Reference_seance||`Séance ${r.id}`, d.Seance);
     setOptions(document.getElementById('rapporteur'), refs.elus, r=>r.Nom_complet||`${r.Prenom||''} ${r.Nom||''}`.trim(), d.Rapporteur);
     setOptions(document.getElementById('unite'), refs.unites, r=>r.Nom_service||r.Code_service||`Unité ${r.id}`, d.Unite_redactrice);

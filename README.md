@@ -1,5 +1,9 @@
-# Sanguinet – Délibérations v0.6.2
+# Sanguinet – Délibérations v0.7.0
 
-Voir [le correctif des articles](MISE-A-JOUR-v0.6.2.md).
+[Installation et utilisation de la planification DGS](PLANIFICATION-v0.7.0.md).
 
-Le [guide de rédaction](REDACTION-v0.6.0.md) reste applicable avec le paramètre d’URL v=0.6.2. Le suivi de séance est conservé.
+- planning.html : séances et ordre du jour.
+- index.html : rédaction DGS.
+- session.html : suivi de séance conservé en v0.5.3.
+
+Les guides antérieurs décrivent les anciennes versions ; le guide v0.7.0 fait référence pour le fléchage et le verrouillage des projets.

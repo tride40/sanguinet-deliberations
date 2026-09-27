@@ -10,17 +10,18 @@
  function controls(){
   $('#draftFields').disabled=busy||loadFailed;
   $('#draftFields').querySelectorAll('input,select,textarea,button').forEach(e=>{e.disabled=readOnly()&&e.id!=='previewDraft';});
+  $('#seance').disabled=readOnly()||!!(id&&db.ORDRE_DU_JOUR.some(p=>p.Deliberation===id));
   $('#saveBtn').disabled=!access||busy||readOnly()||loadFailed;
   $('#projectPicker').disabled=busy||!access;$('#newDraft').disabled=busy||!access;$('#reloadDraft').disabled=busy||!access;
-  $('#draftMessage').textContent=readOnly()?'Lecture seule : projet engagé dans le circuit de validation, inscrit à l’ordre du jour ou comportant des contenus structurés à préserver.':dirty()?'● Modifications non enregistrées':id?'✓ Projet enregistré dans Grist':'Nouveau brouillon — saisissez son objet pour pouvoir l’enregistrer.';
+  $('#draftMessage').textContent=readOnly()?'Lecture seule : séance verrouillée ou engagée, projet validé ou contenus structurés à préserver.':dirty()?'● Modifications non enregistrées':id?'✓ Projet enregistré dans Grist':'Nouveau brouillon — saisissez son objet pour pouvoir l’enregistrer.';
  }
  function list(){
   const q=$('#projectSearch').value.toLocaleLowerCase('fr');
-  $('#projectPicker').innerHTML='<option value="0">Nouveau projet</option>'+db.DELIBERATIONS.filter(d=>d.id===id||(d.Objet||'').toLocaleLowerCase('fr').includes(q)).sort((a,b)=>b.id-a.id).map(d=>`<option value="${d.id}">${esc(d.Objet||'Sans objet')} — ${esc(d.Statut_deliberation||'Brouillon')}</option>`).join('');
+  $('#projectPicker').innerHTML='<option value="0">Nouveau projet</option>'+db.DELIBERATIONS.filter(d=>d.id===id||(d.Objet||'').toLocaleLowerCase('fr').includes(q)).sort((a,b)=>b.id-a.id).map(d=>`<option value="${d.id}">${esc(d.Objet||'Sans objet')} — ${esc(d.Statut_deliberation==='Brouillon service'?'Brouillon DGS':(d.Statut_deliberation||'Brouillon'))}</option>`).join('');
   $('#projectPicker').value=String(id);
  }
  function show(next){
-  id=next;E.load(D.load(db,id));baseline=fingerprint();originalScope=JSON.stringify(D.scope(db,id));list();controls();
+  id=next;const loaded=D.load(db,id);if(!id){const units=db.UNITES_ORGANISATIONNELLES.filter(u=>['dgs','direction generale des services'].includes((u.Nom_service||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()));if(units.length===1)loaded.fields.Unite_redactrice=units[0].id;}E.load(loaded);baseline=fingerprint();originalScope=JSON.stringify(D.scope(db,id));list();controls();
  }
  async function fetchDB(){
   const results=await Promise.allSettled(D.tables.map(t=>grist.docApi.fetchTable(t)));
@@ -70,7 +71,7 @@
  window.Drafting={readOnly};
  show(0);
  window.addEventListener('DOMContentLoaded',()=>{
-  $('#appVersion').textContent='v0.6.2 · Rédaction';
+  $('#appVersion').textContent='v0.7.0 · Rédaction';
   if(!window.grist||parent===window){initialized=true;status('warning','Aperçu local : vous pouvez essayer la rédaction et les tableaux. Pour enregistrer, ouvrez cette page comme widget Grist avec accès complet.');controls();return;}
   grist.onOptions((options,interaction)=>{
    access=(interaction?.accessLevel??interaction?.access_level)==='full';

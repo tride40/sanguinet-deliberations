@@ -50,7 +50,7 @@ function render(){
  const complete=!D.participantErrors(p,D.active(db)).length;$('#quorumLabel').textContent=!complete?'À vérifier':present>=Math.floor(s.Nb_membres_exercice/2)+1?'Atteint':'Non atteint';
  const events=db.JOURNAL_ACTIONS.filter(j=>j.Seance===sessionId&&['Suspension de séance','Reprise de séance'].includes(j.Description)).sort((a,b)=>b.Date_action-a.Date_action||b.id-a.id);
  $('#liveSessionStatus').textContent=events[0]?.Description==='Suspension de séance'?'Suspendue':s.Statut_seance||'Préparation';
- const list=points();$('#agendaCount').textContent=list.length+' points';$('#emptyAgenda').hidden=!!list.length;$('.session-layout').hidden=!list.length;
+ const list=points();$('.progress-meta').hidden=!list.length;$('#agendaCount').textContent=list.length+' points';$('#emptyAgenda').hidden=!!list.length;$('.session-layout').hidden=!list.length;
  $('#agendaList').innerHTML=list.map(p=>`<button class="agenda-item ${p.id===pointId?'active':''}"><span class="agenda-no">${p.Ordre_point}</span><span class="agenda-title">${esc(p.Intitule_point||db.DELIBERATIONS.find(d=>d.id===p.Deliberation)?.Objet||'Point')}</span><span class="agenda-state ${p.Statut_suivi==='Validé'?'validated':''}">${p.Statut_suivi==='Validé'?'● Validé':'À examiner'}</span></button>`).join('');
  $$('.agenda-item').forEach((b,i)=>b.onclick=()=>navigate(list[i].id));
  if(!point())return;
@@ -90,9 +90,9 @@ function renderVotes(){
  $$('.decision-card button,.decision-card select,.group-vote-btn,#detailPanel select,#tieChoice,#moreActionsBtn').forEach(e=>e.disabled=isLocked);
  $('#showExceptionsBtn').disabled=false;$('#saveDraftBtn').hidden=p.Statut_suivi==='Validé';$('#validateNextBtn').hidden=isLocked;$('#validateNextBtn').disabled=!!o.pending;$('#validateNextBtn').textContent=editing?'Valider les modifications':'Valider et passer au point suivant →';
 }
-function openModal(title,body,save){modalTrigger=document.activeElement;$('#rareModalTitle').textContent=title;$('#rareModalBody').innerHTML=body;$('#modalError').hidden=true;$('#rareModal').hidden=false;$('#moreActionsMenu').hidden=true;$('#moreActionsBtn').setAttribute('aria-expanded','false');modalSave=save;$('#rareModalBody').querySelector('input,select,textarea')?.focus();}
-function closeModal(){if(busy)return;$('#rareModal').hidden=true;modalSave=null;modalTrigger?.focus();}
-function hideModal(){ $('#rareModal').hidden=true;modalSave=null; }
+function openModal(title,body,save){modalTrigger=document.activeElement;$('#confirmRareBtn').hidden=false;$('#rareModalTitle').textContent=title;$('#rareModalBody').innerHTML=body;$('#modalError').hidden=true;$('#rareModal').hidden=false;$('#moreActionsMenu').hidden=true;$('#moreActionsBtn').setAttribute('aria-expanded','false');modalSave=save;$('#rareModalBody').querySelector('input,select,textarea')?.focus();}
+function closeModal(){if(busy)return;$('#confirmRareBtn').hidden=false;$('#rareModal').hidden=true;modalSave=null;modalTrigger?.focus();}
+function hideModal(){ $('#confirmRareBtn').hidden=false;$('#rareModal').hidden=true;modalSave=null; }
 function field(id,label,type='text',value='',required=false){return `<label>${label}<input id="${id}" type="${type}" value="${esc(value)}" ${required?'required':''}></label>`;}
 function parisTimestamp(value){const [date,time]=value.split('T');if(!date||!time)throw Error('Renseignez la date et l’heure.');const [y,m,d]=date.split('-').map(Number),[h,min]=time.split(':').map(Number);const target=Date.UTC(y,m-1,d,h,min);let guess=target;for(let n=0;n<3;n++){const p=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(guess)).map(x=>[x.type,x.value]));const shown=Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute);if(shown===target)return guess/1000;guess+=target-shown;}throw Error('Heure inexistante au changement d’heure. Choisissez une autre heure.');}
 function newSession(){if(!leave())return;openModal('Créer une séance',`<div class="modal-grid">${field('newDate','Date et heure (Paris)','datetime-local','',true)}${field('newLabel','Intitulé','text','',true)}${field('newPlace','Lieu','text',db.PARAMETRES_APPLICATION[0]?.Lieu_seance_defaut||'')}${field('newMembers','Membres en exercice','number',db.PARAMETRES_APPLICATION[0]?.Nb_conseillers||D.active(db).length,true)}</div>`,async()=>{
@@ -101,16 +101,49 @@ function newSession(){if(!leave())return;openModal('Créer une séance',`<div cl
  sessionId=num(result.retValues?.[0]);pointId=0;hideModal();await refresh();status('connected','Séance créée. Renseignez maintenant ses présences et ses pouvoirs.');
  });}
 function settings(){
- if(!leave())return;const s=session(),old=parts();const ids=[...new Set([...D.active(db).map(e=>e.id),...old.map(p=>p.Elu)])];
- openModal('Présences et paramètres de séance',`<div class="modal-grid"><label>Président<select id="president" required>${personOptions(s.President_seance)}</select></label><label>Secrétaire<select id="secretary" required>${personOptions(s.Secretaire_seance)}</select></label>${field('members','Membres en exercice','number',s.Nb_membres_exercice,true)}</div><p>Renseignez chaque élu. Les changements sont appliqués aux votes à venir ; les résultats déjà validés sont conservés.</p><div>${ids.map(id=>{const p=old.find(x=>x.Elu===id)||{},e=db.ELUS.find(e=>e.id===id);return `<div class="attendance-row" data-person="${id}"><strong>${esc(name(id))}</strong><label>Présence<select data-presence required>${option('','À renseigner',p.Statut_presence)}${[D.PRESENT,D.PROXY,'Absent excusé sans pouvoir','Absent non excusé'].map(v=>option(v,v,p.Statut_presence)).join('')}</select></label><label>Mandataire<select data-proxy>${personOptions(p.Mandataire,'Sans pouvoir')}</select></label><label>Groupe de séance<select data-membership>${option(0,'Sans groupe',p.Groupe_seance??e?.Groupe_politique)}${db.GROUPES_POLITIQUES.map(g=>option(g.id,g.Nom,p.Groupe_seance??e?.Groupe_politique)).join('')}</select></label></div>`;}).join('')}</div>`,async()=>{
- const desired=$$('[data-person]').map(row=>({Seance:sessionId,Elu:num(row.dataset.person),Statut_presence:row.querySelector('[data-presence]').value,Mandataire:num(row.querySelector('[data-proxy]').value),Groupe_seance:num(row.querySelector('[data-membership]').value)}));
- const errors=D.participantErrors(desired,D.active(db));if(errors.length)throw Error(errors.join(' '));
- const president=num($('#president').value),secretary=num($('#secretary').value),members=num($('#members').value);
- if(members<desired.length)throw Error('Le nombre de membres ne peut être inférieur au nombre de participations.');
- if(!desired.some(p=>p.Elu===president&&p.Statut_presence===D.PRESENT)||!desired.some(p=>p.Elu===secretary&&p.Statut_presence===D.PRESENT))throw Error('Le président et le secrétaire doivent être présents.');
- await store.fresh();await store.apply([['UpdateRecord','SEANCES_CM',sessionId,{President_seance:president,Secretaire_seance:secretary,Nb_membres_exercice:members}],...D.sync('PARTICIPATIONS_SEANCE',old,desired,p=>p.Elu),log('Mise à jour des présences et pouvoirs',{Ancienne_valeur:JSON.stringify(old),Nouvelle_valeur:JSON.stringify(desired)})]);hideModal();await refresh();
+ if(!leave())return;
+ const s=session(),old=parts(),ids=[...new Set([...D.active(db).map(e=>e.id),...old.map(p=>p.Elu)])];
+ const callRows=ids.map(id=>{const p=old.find(r=>r.Elu===id),e=db.ELUS.find(e=>e.id===id);return {Seance:sessionId,Elu:id,Statut_presence:p?.Statut_presence||'',Mandataire:p?.Mandataire||0,Groupe_seance:p?.Groupe_seance??e?.Groupe_politique??0};});
+ let selected=callRows.find(r=>!r.Statut_presence)?.Elu||ids[0],donor=0;
+ const label=r=>!r.Statut_presence?'À appeler':r.Statut_presence===D.PROXY?'Pouvoir à '+name(r.Mandataire):r.Statut_presence;
+ openModal('Appel des élus',`<div id="callMain"><details><summary>Président, secrétaire et membres en exercice</summary><div class="modal-grid"><label>Président<select id="president">${personOptions(s.President_seance)}</select></label><label>Secrétaire<select id="secretary">${personOptions(s.Secretaire_seance)}</select></label>${field('members','Membres en exercice','number',s.Nb_membres_exercice,true)}</div></details><p id="callProgress" role="status"></p><label>Élu à appeler ou à corriger<select id="callPerson"></select></label><section class="call-card"><h3 id="callName"></h3><p id="callState"></p><div class="call-buttons"><button type="button" id="callPresent">✓ Présent</button><button type="button" id="callProxy">↗ Absent ayant donné pouvoir</button><button type="button" id="callAbsent">Absent sans pouvoir</button></div><div id="absenceChoices" hidden><p>Précisez l’absence :</p><button type="button" data-absence="Absent excusé sans pouvoir">Absent excusé</button><button type="button" data-absence="Absent non excusé">Absent non excusé</button></div></section><p id="callFeedback" role="status"></p><p class="empty-note">Les choix seront sauvegardés avec « Enregistrer ». Vous pouvez enregistrer un appel incomplet et le reprendre plus tard.</p></div><section id="proxyPicker" hidden aria-labelledby="proxyTitle"><h3 id="proxyTitle"></h3><label>Rechercher le mandataire<input id="proxySearch" type="search" placeholder="Nom ou prénom…" autocomplete="off"></label><p class="empty-note">Le mandataire choisi sera marqué présent automatiquement. Les élus portant déjà un autre pouvoir sont indisponibles.</p><div id="proxyResults"></div><button type="button" id="cancelProxy" class="ghost-btn">Retour à l’appel</button></section>`,async()=>{
+  if(donor)throw Error('Choisissez un mandataire ou revenez à l’appel.');
+  const desired=callRows.filter(r=>r.Statut_presence),errors=D.participantErrors(desired,[]);
+  if(errors.length)throw Error(errors.join(' '));
+  const president=num($('#president').value),secretary=num($('#secretary').value),members=num($('#members').value);
+  if(members<ids.length)throw Error('Le nombre de membres ne peut être inférieur au nombre d’élus de cet appel.');
+  for(const [id,title] of [[president,'président'],[secretary,'secrétaire']])if(id&&!desired.some(r=>r.Elu===id&&r.Statut_presence===D.PRESENT))throw Error('Le '+title+' doit être présent. Vous pouvez laisser ce champ vide pendant l’appel.');
+  await store.fresh();await store.apply([['UpdateRecord','SEANCES_CM',sessionId,{President_seance:president,Secretaire_seance:secretary,Nb_membres_exercice:members}],...D.sync('PARTICIPATIONS_SEANCE',old,desired,r=>r.Elu),log('Mise à jour de l’appel et des pouvoirs',{Ancienne_valeur:JSON.stringify(old),Nouvelle_valeur:JSON.stringify(desired)})]);hideModal();await refresh();
  });
- $$('[data-presence]').forEach(e=>e.onchange=()=>{if(e.value!==D.PROXY)e.closest('[data-person]').querySelector('[data-proxy]').value='';});
+ function showCall(message=''){
+  donor=0;$('#callMain').hidden=false;$('#proxyPicker').hidden=true;$('#confirmRareBtn').hidden=false;$('#absenceChoices').hidden=true;
+  $('#callPerson').innerHTML=callRows.map(r=>option(r.Elu,name(r.Elu)+' — '+label(r),selected)).join('');
+  const row=callRows.find(r=>r.Elu===selected);
+  $('#callName').textContent=row?name(selected):'Aucun élu';$('#callState').textContent=row?label(row):'';
+  const remaining=callRows.filter(r=>!r.Statut_presence).length;
+  $('#callProgress').textContent=`${callRows.length-remaining} / ${callRows.length} élus renseignés · ${callRows.filter(r=>r.Statut_presence===D.PRESENT).length} présents · ${callRows.filter(r=>r.Statut_presence===D.PROXY).length} pouvoirs · ${remaining} à appeler`;
+  $('#callFeedback').textContent=message;$('#callPerson').focus();
+ }
+ function next(message){selected=callRows.find(r=>!r.Statut_presence)?.Elu||selected;showCall(message);}
+ function changePresence(value){try{CallModel.setPresence(callRows,selected,value);next(name(selected)+' : '+value+'.');}catch(e){$('#callFeedback').textContent=e.message;}}
+ $('#callPerson').onchange=()=>{selected=num($('#callPerson').value);showCall();};
+ $('#callPresent').onclick=()=>changePresence(D.PRESENT);
+ $('#callAbsent').onclick=()=>{$('#absenceChoices').hidden=false;};
+ $$('[data-absence]').forEach(b=>b.onclick=()=>changePresence(b.dataset.absence));
+ function results(){
+  const query=CallModel.normalize($('#proxySearch').value),tokens=query.split(/\s+/).filter(Boolean);
+  const candidates=callRows.filter(r=>r.Elu!==donor&&tokens.every(t=>CallModel.normalize(name(r.Elu)).includes(t)));
+  $('#proxyResults').innerHTML=candidates.length?candidates.map(r=>{const held=CallModel.holder(callRows,r.Elu,donor);return `<button type="button" class="proxy-candidate" data-recipient="${r.Elu}" ${held?'disabled':''}><strong>${esc(name(r.Elu))}</strong><small>${esc(held?'Porte déjà le pouvoir de '+name(held.Elu):r.Statut_presence===D.PRESENT?'Présent':r.Statut_presence===D.PROXY?'Sera marqué présent ; son ancien pouvoir sera retiré':'Sera automatiquement marqué présent')}</small></button>`;}).join(''):'<p>Aucun élu ne correspond à cette recherche.</p>';
+  $$('[data-recipient]').forEach(b=>b.onclick=()=>{
+   try{const from=donor,to=num(b.dataset.recipient),result=CallModel.giveProxy(callRows,from,to);next(name(from)+' donne pouvoir à '+name(to)+'.'+(result.promoted?' '+name(to)+' est maintenant marqué présent.':'')+(result.previousProxy?' Son ancien pouvoir a été retiré.':''));}catch(e){$('#modalError').hidden=false;$('#modalError').textContent=e.message;}
+  });
+ }
+ $('#callProxy').onclick=()=>{
+  if(CallModel.holder(callRows,selected)){$('#callFeedback').textContent='Cet élu porte déjà un pouvoir. Réattribuez ce pouvoir avant de le déclarer absent.';return;}
+  donor=selected;$('#callMain').hidden=true;$('#proxyPicker').hidden=false;$('#confirmRareBtn').hidden=true;$('#proxyTitle').textContent='Donner pouvoir de '+name(donor)+' à…';$('#proxySearch').value='';results();$('#proxySearch').focus();
+ };
+ $('#proxySearch').oninput=results;$('#cancelProxy').onclick=()=>showCall();
+ showCall();
 }
 function addPoint(){
  if(!leave())return;
@@ -158,6 +191,7 @@ async function saveVote(validate){
 }
 function rare(type){
  if(locked())return;
+ if(type==='proxy'){settings();return;}
  if(type==='nppv'){
   const voters=currentVoters();openModal('Déclarer une non-participation',`<label>Élu<select id="nppvPerson" required>${option('','Choisir…')}${voters.map(v=>option(v.id,name(v.id))).join('')}</select></label><label>Motif<select id="nppvMotive" required>${option('','Choisir…')}${['Conflit d’intérêts','Retrait volontaire','Sortie temporaire de séance','Autre'].map(v=>option(v,v)).join('')}</select></label>`,async()=>{
    const id=num($('#nppvPerson').value);draft.mode='groups';draft.overrides[id]=D.NPPV;draft.motives[id]=$('#nppvMotive').value;draft.tie='';dirty=true;await saveVote(false);hideModal();

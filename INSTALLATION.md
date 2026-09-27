@@ -1,4 +1,25 @@
-# Sanguinet — Délibérations v0.5.1
+# Version 0.5.2 — Appel progressif et recherche des mandataires
+
+Dans les paramètres de séance, choisir l’élu puis Présent, Absent ayant donné pouvoir, ou Absent sans pouvoir. L’appel avance vers le prochain élu non renseigné ; le sélecteur permet de revenir sur toute personne.
+
+Absent ayant donné pouvoir ouvre le choix du mandataire avec recherche par nom et prénom (sans distinction de casse ni d’accents). L’élu donnant pouvoir est exclu. Un élu portant déjà un autre pouvoir est affiché indisponible. Le mandataire choisi est marqué présent automatiquement. S’il avait lui-même donné pouvoir, son ancien pouvoir est retiré et cette modification est indiquée.
+
+Les choix restent dans la fenêtre jusqu’au clic sur Enregistrer. L’enregistrement sauvegarde en une fois les présences et les pouvoirs, y compris la présence automatique du mandataire. Il est possible d’enregistrer un appel incomplet puis de le reprendre : les élus non renseignés ne sont pas transformés en absents. Président et secrétaire peuvent être complétés dans la section dépliable ; ils restent requis avant validation d’un vote.
+
+Le menu Modifier un pouvoir utilise désormais le même appel et la même recherche. Pour corriger un pouvoir, sélectionner l’élu absent puis cliquer de nouveau sur Absent ayant donné pouvoir. Pour le retirer, choisir Présent ou une absence sans pouvoir. Un mandataire portant un pouvoir ne peut être marqué absent tant que ce pouvoir n’a pas été réattribué.
+
+Aucune modification des tables Grist nécessaire. Les validations et votes déjà enregistrés restent conservés.
+
+Tests : appel partiel puis reprise, recherche normalisée, présence automatique, pouvoir sur soi interdit, mandataire déjà chargé indisponible, réattribution, ancien pouvoir retiré, ainsi que le parcours de sauvegarde/relecture et de validation de la v0.5. Tests exécutés avec un pont Grist simulé reprenant votre schéma ; le premier essai dans votre instance reste à effectuer.
+
+Publication : déposer le contenu du dossier sanguinet-deliberations à la racine du dépôt GitHub, y compris le nouveau fichier src/call-model.js. Attendre le succès de GitHub Pages, puis utiliser dans Grist :
+
+https://tride40.github.io/sanguinet-deliberations/session.html?v=0.5.2
+
+Vérifier que Version 0.5.2 apparaît dans le widget. Conserver l’accès complet au document.
+
+
+# Sanguinet — Délibérations v0.5.2
 
 ## Installation, pas à pas
 
@@ -8,7 +29,7 @@ Décompressez toute l’archive. Dans le dépôt `tride40/sanguinet-deliberation
 
 Conservez les dossiers css et src. Les fichiers session.html et index.html doivent être directement à la racine. Validez avec Commit changes, puis attendez la coche verte de la publication GitHub Pages.
 
-La page https://tride40.github.io/sanguinet-deliberations/session.html?v=0.5.1 affiche maintenant, hors de Grist, une invitation à l’installer dans un widget. C’est normal : les élus et séances réels ne sont accessibles qu’à travers Grist. La démonstration séparée reste disponible dans demo-session.html.
+La page https://tride40.github.io/sanguinet-deliberations/session.html?v=0.5.2 affiche maintenant, hors de Grist, une invitation à l’installer dans un widget. C’est normal : les élus et séances réels ne sont accessibles qu’à travers Grist. La démonstration séparée reste disponible dans demo-session.html.
 
 ### 2. Ajouter le suivi de séance dans Grist
 
@@ -18,7 +39,7 @@ Dans votre document Délibérations :
 2. Choisir SEANCES_CM comme table de données, même si elle est vide.
 3. Dans les options du widget, choisir l’URL personnalisée et saisir :
 
-https://tride40.github.io/sanguinet-deliberations/session.html?v=0.5.1
+https://tride40.github.io/sanguinet-deliberations/session.html?v=0.5.2
 
 4. Autoriser l’accès complet au document. Il est nécessaire pour lire les différentes tables et enregistrer les votes ; aucune clé API n’est à créer ni à mettre dans GitHub.
 5. Nommer cette page « Suivi de séance ».
@@ -44,7 +65,7 @@ Une absence de quorum, un pouvoir invalide, une saisie incomplète, une absence 
 
 Le module de rédaction antérieur est conservé à index.html. Pour l’utiliser dans Grist, ajouter un deuxième widget personnalisé lié à DELIBERATIONS avec l’URL :
 
-https://tride40.github.io/sanguinet-deliberations/index.html?v=0.5.1
+https://tride40.github.io/sanguinet-deliberations/index.html?v=0.5.2
 
 Accorder l’accès complet et sélectionner la délibération à rédiger dans la table associée. Le raccordement de rédaction existant est conservé ; cette livraison cible le suivi de séance. La numérotation officielle et les exports définitifs ne font pas partie de ce nouveau raccordement.
 

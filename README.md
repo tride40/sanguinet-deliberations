@@ -1,3 +1,24 @@
+# Version 0.5.2 — Appel progressif et recherche des mandataires
+
+Dans les paramètres de séance, choisir l’élu puis Présent, Absent ayant donné pouvoir, ou Absent sans pouvoir. L’appel avance vers le prochain élu non renseigné ; le sélecteur permet de revenir sur toute personne.
+
+Absent ayant donné pouvoir ouvre le choix du mandataire avec recherche par nom et prénom (sans distinction de casse ni d’accents). L’élu donnant pouvoir est exclu. Un élu portant déjà un autre pouvoir est affiché indisponible. Le mandataire choisi est marqué présent automatiquement. S’il avait lui-même donné pouvoir, son ancien pouvoir est retiré et cette modification est indiquée.
+
+Les choix restent dans la fenêtre jusqu’au clic sur Enregistrer. L’enregistrement sauvegarde en une fois les présences et les pouvoirs, y compris la présence automatique du mandataire. Il est possible d’enregistrer un appel incomplet puis de le reprendre : les élus non renseignés ne sont pas transformés en absents. Président et secrétaire peuvent être complétés dans la section dépliable ; ils restent requis avant validation d’un vote.
+
+Le menu Modifier un pouvoir utilise désormais le même appel et la même recherche. Pour corriger un pouvoir, sélectionner l’élu absent puis cliquer de nouveau sur Absent ayant donné pouvoir. Pour le retirer, choisir Présent ou une absence sans pouvoir. Un mandataire portant un pouvoir ne peut être marqué absent tant que ce pouvoir n’a pas été réattribué.
+
+Aucune modification des tables Grist nécessaire. Les validations et votes déjà enregistrés restent conservés.
+
+Tests : appel partiel puis reprise, recherche normalisée, présence automatique, pouvoir sur soi interdit, mandataire déjà chargé indisponible, réattribution, ancien pouvoir retiré, ainsi que le parcours de sauvegarde/relecture et de validation de la v0.5. Tests exécutés avec un pont Grist simulé reprenant votre schéma ; le premier essai dans votre instance reste à effectuer.
+
+Publication : déposer le contenu du dossier sanguinet-deliberations à la racine du dépôt GitHub, y compris le nouveau fichier src/call-model.js. Attendre le succès de GitHub Pages, puis utiliser dans Grist :
+
+https://tride40.github.io/sanguinet-deliberations/session.html?v=0.5.2
+
+Vérifier que Version 0.5.2 apparaît dans le widget. Conserver l’accès complet au document.
+
+
 # Correctif 0.5.1
 
 Reconnaissance du niveau d’accès Grist via interaction.accessLevel, avec compatibilité access_level. Le script connecté est versionné dans son URL pour éviter un ancien fichier en cache. Aucun changement de schéma ou de données.

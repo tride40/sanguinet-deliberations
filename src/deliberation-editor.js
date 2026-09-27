@@ -4,28 +4,6 @@
     expose: [], visas: [], considerants: [], articles: [], annexes: []
   };
 
-  const demo = {
-    expose:[
-      {text:'La commune de Sanguinet propose d’actualiser ses tarifs municipaux pour l’année 2027.', format:'Texte courant'},
-      {text:'Ces tarifs concernent notamment les services municipaux et les occupations du domaine public.', format:'Texte courant'},
-      {text:'Cette révision tient compte de l’évolution des coûts et de la volonté de maintenir un service public de qualité.', format:'Texte courant'}
-    ],
-    visas:[
-      {text:'le Code général des collectivités territoriales', category:'Code'},
-      {text:'la délibération relative aux tarifs municipaux 2026', category:'Délibération antérieure'},
-      {text:'les pièces annexées à la présente délibération', category:'Document annexé'}
-    ],
-    considerants:[
-      {text:'la nécessité d’actualiser les tarifs municipaux pour l’année 2027', category:'Nécessité de la décision'},
-      {text:'la volonté de garantir l’accessibilité des services publics', category:'Intérêt général'},
-      {text:'l’équilibre budgétaire du budget principal', category:'Motif financier'}
-    ],
-    articles:[
-      {text:'D’approuver les tarifs municipaux applicables à compter du 1er janvier 2027.', category:'Approbation', title:'', tables:[]},
-      {text:'D’autoriser Monsieur le Maire à signer tout document nécessaire à l’exécution de la présente délibération.', category:'Autorisation', title:'', tables:[]}
-    ]
-  };
-
   const categoriesVisas = ['Code','Loi ou règlement','Délibération antérieure','Décision ou arrêté','Avis ou consultation','Convention ou contrat','Document annexé','Autre'];
   const categoriesCons = ['Contexte','Motif juridique','Motif administratif','Motif financier','Motif technique','Intérêt général','Nécessité de la décision','Autre'];
   const categoriesArticles = ['Prise d’acte','Approbation','Autorisation','Décision','Fixation d’un montant ou tarif','Attribution','Modification','Abrogation','Mandat donné au Maire','Disposition financière','Autre'];
@@ -41,7 +19,7 @@
     state.expose = data.expose.map(r=>({id:r.id,text:r.Texte_paragraphe||'',format:r.Format_paragraphe||'Texte courant'}));
     state.visas = data.visas.map(r=>({id:r.id,text:r.Texte_visa||'',category:r.Categorie_visa||'Autre'}));
     state.considerants = data.considerants.map(r=>({id:r.id,text:r.Texte_considerant||'',category:r.Categorie_considerant||'Autre'}));
-    state.articles = data.articles.map(r=>({id:r.id,text:r.Texte_article||'',category:r.Categorie_article||'Autre',title:r.Titre_article||'',tables:(r._tables||[]).map(t=>({id:t.id,title:t.Titre_tableau||'',showTitle:!!t.Afficher_titre,showHeader:t.Afficher_entete!==false,repeatHeader:t.Repeter_entete_sur_pages!==false,style:t.Style_tableau||'Institutionnel standard',width:t.Largeur_tableau||'Pleine largeur',note:t.Note_sous_tableau||'',columns:(t._columns||[]).map(c=>({id:c.id,title:c.Intitule_colonne||'',format:c.Format_valeur||'Texte',align:c.Alignement||'Automatique',width:c.Largeur_relative||null,decimals:c.Nombre_decimales||0})),rows:(t._lines||[]).map(l=>({id:l.id,type:l.Type_ligne||'Données',noSplit:l.Ne_pas_scinder!==false,comment:l.Commentaire_interne||'',cells:(l._cells||[]).map(c=>c?({id:c.id,text:c.Valeur_texte||'',number:c.Valeur_nombre,date:c.Valeur_date||null}):({text:''}))}))}))}));
+    state.articles = data.articles.map(r=>({id:r.id,text:r.Texte_article||'',category:r.Categorie_article||'Autre',title:r.Titre_article||'',tables:(r._tables||[]).map(t=>({id:t.id,title:t.Titre_tableau||'',showTitle:!!t.Afficher_titre,showHeader:t.Afficher_entete!==false,repeatHeader:t.Repeter_entete_sur_pages!==false,style:t.Style_tableau||'Institutionnel standard',width:t.Largeur_tableau||'Pleine largeur',note:t.Note_sous_tableau||'',columns:(t._columns||[]).map(c=>({id:c.id,title:c.Intitule_colonne||'',format:c.Format_valeur||'Texte',align:c.Alignement||'Automatique',width:c.Largeur_relative||null,decimals:c.Nombre_decimales||0})),rows:(t._lines||[]).map(l=>({id:l.id,type:l.Type_ligne||'Données',noSplit:l.Ne_pas_scinder!==false,comment:l.Commentaire_interne||'',cells:(l._cells||[]).map(c=>c?({id:c.id,text:c.Valeur_texte||'',number:c.Valeur_nombre,date:typeof c.Valeur_date==='number'?new Date(c.Valeur_date*1000).toISOString().slice(0,10):(c.Valeur_date||null)}):({text:''}))}))}))}));
     state.annexes = data.annexes || [];
   }
 
@@ -64,7 +42,7 @@
       let category='';
       if(key==='visas') category=`<select class="inline-category" data-prop="category" data-key="${key}" data-index="${i}">${options(categoriesVisas,item.category)}</select>`;
       if(key==='considerants') category=`<select class="inline-category" data-prop="category" data-key="${key}" data-index="${i}">${options(categoriesCons,item.category)}</select>`;
-      row.innerHTML=`<span class="drag" title="Glisser pour réordonner">⋮⋮</span>${category}<div class="prefix-input">${prefix?`<span>${prefix}</span>`:''}<input value="${escapeHtml(item.text)}" data-prop="text" data-key="${key}" data-index="${i}"></div><button class="mini-btn" data-del="${key}:${i}" title="Supprimer">🗑</button>`;
+      row.innerHTML=`<span class="drag" title="Glisser pour réordonner">⋮⋮</span>${category}<div class="prefix-input">${prefix?`<span>${prefix}</span>`:''}<textarea aria-label="${prefix} ${i+1}" data-prop="text" data-key="${key}" data-index="${i}">${escapeHtml(item.text)}</textarea></div><button class="mini-btn" data-del="${key}:${i}" title="Supprimer">🗑</button>`;
       el.appendChild(row);
     });
   }
@@ -82,7 +60,7 @@
     const el=document.getElementById('articlesList'); el.innerHTML='';
     state.articles.forEach((item,i)=>{
       const row=document.createElement('div'); row.className='article'; row.draggable=true; row.dataset.index=i; row.dataset.key='articles';
-      row.innerHTML=`<div class="article-head"><div><span class="drag">⋮⋮</span><span class="article-title">Article ${i+1}</span></div><button class="mini-btn" data-del="articles:${i}">🗑</button></div><div class="article-meta"><select data-prop="category" data-key="articles" data-index="${i}">${options(categoriesArticles,item.category)}</select><input placeholder="Titre facultatif" value="${escapeHtml(item.title||'')}" data-prop="title" data-key="articles" data-index="${i}"></div><textarea data-prop="text" data-key="articles" data-index="${i}">${escapeHtml(item.text)}</textarea><div class="article-table-tools"><button class="table-btn" type="button" onclick="TableEditor.open(${i},0)">▦ ${item.tables?.length ? `Tableaux (${item.tables.length})` : 'Insérer un tableau'}</button>${(item.tables||[]).slice(1).map((t,ti)=>`<button class="table-chip" type="button" onclick="TableEditor.open(${i},${ti+1})">Tableau ${ti+2}</button>`).join('')}</div>`;
+      row.innerHTML=`<div class="article-head"><div><span class="drag">⋮⋮</span><span class="article-title">Article ${i+1}</span></div><button class="mini-btn" data-del="articles:${i}">🗑</button></div><div class="article-meta"><select data-prop="category" data-key="articles" data-index="${i}">${options(categoriesArticles,item.category)}</select><input placeholder="Titre facultatif" value="${escapeHtml(item.title||'')}" data-prop="title" data-key="articles" data-index="${i}"></div><textarea data-prop="text" data-key="articles" data-index="${i}">${escapeHtml(item.text)}</textarea><div class="article-table-tools"><button class="table-btn" type="button" onclick="TableEditor.open(${i},0)">▦ ${item.tables?.length ? `Tableaux (${item.tables.length})` : 'Insérer un tableau'}</button><button class="table-chip" type="button" onclick="TableEditor.open(${i},${item.tables?.length||0})">+ Autre tableau</button>${(item.tables||[]).slice(1).map((t,ti)=>`<button class="table-chip" type="button" onclick="TableEditor.open(${i},${ti+1})">Tableau ${ti+2}</button>`).join('')}</div>`;
       el.appendChild(row);
     });
   }
@@ -133,32 +111,15 @@
     };
   }
 
-  async function save(){
-    const btn=document.getElementById('saveBtn'); const old=btn.textContent;
-    btn.disabled=true; btn.textContent='Enregistrement…';
-    try{
-      if(window.GristBridge?.isConnected()){
-        const fresh=await window.GristBridge.saveDeliberation(payload());
-        load(fresh); btn.textContent='✓ Enregistré dans Grist';
-      } else {
-        btn.textContent='✓ Enregistré (démo)';
-      }
-      setTimeout(()=>btn.textContent=old,1600);
-    }catch(err){
-      console.error(err); btn.textContent='⚠ Erreur d’enregistrement';
-      window.dispatchEvent(new CustomEvent('grist-status',{detail:{type:'error',message:err.message}}));
-      setTimeout(()=>btn.textContent=old,2200);
-    } finally { btn.disabled=false; }
-  }
-
-  function renderAll(){renderExpose();renderList('visas','visasList','Vu');renderList('considerants','considerantsList','Considérant');renderArticles();renderAnnexes();refreshCounts();}
+  function renderAll(){renderExpose();renderList('visas','visasList','Vu');renderList('considerants','considerantsList','Considérant');renderArticles();renderAnnexes();refreshCounts();window.dispatchEvent(new Event('draft-render'));}
 
   document.addEventListener('click',e=>{
+    if(window.Drafting?.readOnly())return;
     const add=e.target.closest('.add-item');
     if(add){const section=add.closest('[data-section]').dataset.section;const defaults={expose:{text:'',format:'Texte courant'},visas:{text:'',category:'Autre'},considerants:{text:'',category:'Autre'}};state[section].push({...defaults[section]});renderAll();}
     if(e.target.id==='addArticle'){state.articles.push({text:'',category:'Autre',title:'',tables:[]});renderAll();}
     const del=e.target.dataset.del;if(del){const [key,index]=del.split(':');state[key].splice(Number(index),1);renderAll();}
-    if(e.target.id==='saveBtn') save();
+    
   });
   document.addEventListener('input',e=>{
     if(e.target.dataset.key){const item=state[e.target.dataset.key][Number(e.target.dataset.index)];if(item)item[e.target.dataset.prop||'text']=e.target.value;refreshCounts();}
@@ -172,9 +133,9 @@
   let dragInfo=null;
   document.addEventListener('dragstart',e=>{const row=e.target.closest('[data-key][data-index]');if(row)dragInfo={key:row.dataset.key,index:Number(row.dataset.index)};});
   document.addEventListener('dragover',e=>{if(e.target.closest('[data-key][data-index]'))e.preventDefault();});
-  document.addEventListener('drop',e=>{const row=e.target.closest('[data-key][data-index]');if(!row||!dragInfo)return;const key=row.dataset.key;if(key!==dragInfo.key)return;const to=Number(row.dataset.index);const [moved]=state[key].splice(dragInfo.index,1);state[key].splice(to,0,moved);dragInfo=null;renderAll();});
+  document.addEventListener('drop',e=>{if(window.Drafting?.readOnly()||document.getElementById('draftFields').disabled)return;const row=e.target.closest('[data-key][data-index]');if(!row||!dragInfo)return;const key=row.dataset.key;if(key!==dragInfo.key)return;const to=Number(row.dataset.index);const [moved]=state[key].splice(dragInfo.index,1);state[key].splice(to,0,moved);dragInfo=null;renderAll();});
 
   window.DeliberationEditor={load,payload,state,renderAll};
-  Object.assign(state, JSON.parse(JSON.stringify(demo)));
+  
   renderAll();
 })();

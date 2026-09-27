@@ -6,7 +6,7 @@
   <title>Sanguinet – Délibérations</title>
   <link rel="stylesheet" href="css/variables.css" />
   <link rel="stylesheet" href="css/layout.css" />
-  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/components.css" /><link rel="stylesheet" href="css/drafting.css?v=0.6.0" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
@@ -17,21 +17,14 @@
         <div class="brand-sub">l’esprit village</div>
       </div>
       <div class="topbar-title">Sanguinet <span>— Délibérations</span></div>
-      <div class="topbar-actions">
-        <input class="search" placeholder="Rechercher une délibération…" />
-        <button class="icon-btn" aria-label="Notifications">🔔</button>
-        <div class="user-chip">
-          <div class="avatar">IM</div>
-          <div><strong>Isabelle Mathez</strong><small>Direction générale des services</small></div>
-        </div>
-      </div>
+      <div class="topbar-actions"><strong>Rédaction · v0.6.0</strong></div>
     </header>
 
     <div id="connectionStatus" class="connection-status loading">Initialisation du widget…</div>
 
     <main class="page">
       <section class="hero">
-        <button class="ghost-btn">← Retour</button>
+        
         <div class="hero-icon">📄</div>
         <div>
           <h1>Rédaction d’une délibération</h1>
@@ -39,19 +32,21 @@
         </div>
       </section>
 
-      <div class="editor-grid">
+      <section class="card project-bar"><label>Rechercher un projet<input id="projectSearch" placeholder="Objet du projet…"></label><label>Reprendre un projet<select id="projectPicker"><option value="">Nouveau projet</option></select></label><button id="newDraft" class="secondary-btn">+ Nouveau projet</button><button id="reloadDraft" class="ghost-btn">Actualiser</button></section>
+      <p id="draftMessage" role="status" aria-live="polite">Connexion en cours…</p>
+      <fieldset id="draftFields" disabled><div class="editor-grid">
         <section class="editor-column">
           <article class="card">
             <div class="card-header"><h2>Informations générales</h2></div>
             <div class="form-grid two">
-              <label>Séance<select id="seance"><option value="">— Sélectionner —</option></select></label>
-              <label>Objet<input id="objet" value="Approbation des tarifs municipaux 2027" /></label>
+              <label>Séance prévue (facultative au brouillon)<select id="seance"><option value="">— Sélectionner —</option></select></label>
+              <label>Objet<input id="objet" placeholder="Objet de la délibération" maxlength="1000" /></label>
             </div>
             <div class="form-grid four">
               <label>Rapporteur<select id="rapporteur"><option value="">— Sélectionner —</option></select></label>
               <label>Service rédacteur<select id="unite"><option value="">— Sélectionner —</option></select></label>
               <label>Domaine<select id="domaine"><option>Administration générale</option><option>Finances</option><option>Ressources humaines</option><option>Commande publique</option><option>Urbanisme et aménagement</option><option>Patrimoine et travaux</option><option>Voirie et réseaux</option><option>Environnement et forêt</option><option>Enfance, éducation et jeunesse</option><option>Culture et vie associative</option><option>Police et sécurité</option><option>Intercommunalité</option><option>Action sociale</option><option>Autre</option></select></label>
-              <label>Statut<select id="statut"><option>Brouillon service</option><option>À valider par le responsable</option><option>Transmis à la DGS</option><option>En cours de contrôle DGS</option><option>Corrections demandées</option><option>Validé par la DGS</option><option>Inscrit à l’ordre du jour</option><option>Envoyé aux élus</option></select></label>
+              <label>Statut<input id="statut" value="Brouillon service" readonly></label>
             </div>
           </article>
 
@@ -76,16 +71,16 @@
           </article>
 
           <article class="card">
-            <div class="card-header"><h2>Annexes</h2><button class="secondary-btn">+ Ajouter une annexe</button></div>
+            <div class="card-header"><h2>Annexes</h2><small>Pièces jointes gérées dans la table ANNEXES de Grist</small></div>
             <div class="attachments" id="annexesList"></div>
           </article>
         </section>
 
         <aside class="side-column">
           <article class="card sticky">
-            <div class="card-header"><h2>Aperçu de la délibération</h2><button class="link-btn">Voir l’aperçu complet →</button></div>
+            <div class="card-header"><h2>Aperçu de la délibération</h2><button id="previewDraft" class="link-btn">Voir l’aperçu complet →</button></div>
             <div class="summary-list">
-              <div><span>Objet</span><strong id="previewObjet">Approbation des tarifs municipaux 2027</strong></div>
+              <div><span>Objet</span><strong id="previewObjet">Nouveau projet</strong></div>
               <div><span>Exposé des motifs</span><strong id="countExpose">3 paragraphes</strong></div>
               <div><span>Visas</span><strong id="countVisas">3 visas</strong></div>
               <div><span>Considérants</span><strong id="countConsiderants">3 considérants</strong></div>
@@ -102,21 +97,21 @@
           <article class="card actions-card">
             <div class="card-header"><h2>Actions</h2></div>
             <button class="primary-btn" id="saveBtn">💾 Enregistrer</button>
-            <button class="secondary-wide">✓ Soumettre à validation</button>
-            <button class="secondary-wide">📄 Générer l’aperçu Word</button>
-            <button class="secondary-wide">📑 Générer le PDF</button>
-            <a class="ghost-wide demo-link" href="session.html">▶ Tester le suivi de séance</a>
-            <button class="ghost-wide">← Retour au tableau de bord</button>
+            
+            
+            
+            
+            <p class="empty-note">Enregistrez un brouillon à tout moment. Le circuit de contrôle DGS et les exports seront ajoutés ensuite.</p>
             <small class="version" id="appVersion"></small>
           </article>
         </aside>
-      </div>
+      </div></fieldset>
     </main>
   </div>
   <script src="src/app.js"></script>
-  <script src="src/grist.js"></script>
-  <script src="src/deliberation-editor.js"></script>
-  <script src="src/table-editor.js"></script>
-  <script src="src/document-generator.js"></script>
+  <script src="src/drafting-data.js?v=0.6.0"></script>
+  <script src="src/deliberation-editor.js?v=0.6.0"></script>
+  <script src="src/table-editor.js?v=0.6.0"></script>
+  <script src="src/drafting.js?v=0.6.0"></script>
 </body>
 </html>

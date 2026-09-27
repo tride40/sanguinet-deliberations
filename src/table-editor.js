@@ -106,19 +106,20 @@
   function deleteRow(i){if(working.rows.length<=1)return;working.rows.splice(i,1);renderGrid();}
 
   function open(aIndex,tIndex=0){
+    if(document.getElementById("draftFields")?.disabled || window.Drafting?.readOnly())return;
     ensureModal();
     articleIndex=Number(aIndex); tableIndex=Number(tIndex)||0;
     const article=window.DeliberationEditor?.state?.articles?.[articleIndex]; if(!article)return;
     article.tables=article.tables||[];
-    if(!article.tables[tableIndex]) article.tables[tableIndex]=emptyTable();
-    working=ensureShape(clone(article.tables[tableIndex]));
+    working=ensureShape(clone(article.tables[tableIndex] || emptyTable()));
     document.getElementById('tableEditorTitle').textContent=`Tableau de l’article ${articleIndex+1}`;
     syncControlsFromMeta(); renderGrid(); document.getElementById('tableEditorModal').classList.add('open'); document.body.classList.add('modal-open');
   }
   function close(){document.getElementById('tableEditorModal')?.classList.remove('open');document.body.classList.remove('modal-open');working=null;}
   function commit(){syncMetaFromControls();const article=window.DeliberationEditor.state.articles[articleIndex];article.tables=article.tables||[];article.tables[tableIndex]=working;window.DeliberationEditor.renderAll();close();}
   function removeTable(){const article=window.DeliberationEditor.state.articles[articleIndex];article.tables=article.tables||[];article.tables.splice(tableIndex,1);window.DeliberationEditor.renderAll();close();}
-  function duplicate(){syncMetaFromControls(); const article=window.DeliberationEditor.state.articles[articleIndex];article.tables=article.tables||[];const copy=clone(working);delete copy.id;(copy.columns||[]).forEach(c=>delete c.id);(copy.rows||[]).forEach(r=>{delete r.id;(r.cells||[]).forEach(c=>delete c.id)});article.tables.splice(tableIndex+1,0,copy);tableIndex++;working=copy;window.DeliberationEditor.renderAll();renderGrid();}
+  function duplicate(){syncMetaFromControls(); const article=window.DeliberationEditor.state.articles[articleIndex];article.tables=article.tables||[];const copy=clone(working);delete copy.id;(copy.columns||[]).forEach(c=>delete c.id);(copy.rows||[]).forEach(r=>{delete r.id;(r.cells||[]).forEach(c=>delete c.id)});article.tables.push(copy);window.DeliberationEditor.renderAll();close();}
 
-  window.TableEditor={open};
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&working)close();});
+  window.TableEditor={open,close};
 })();

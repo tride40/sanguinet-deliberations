@@ -53,7 +53,7 @@
   const flags=(rid)=>rid?{}:{Inclure_dossier_preparatoire:true,Inclure_acte_definitif:true};
   [['expose','EXPOSE_MOTIFS','Ordre_paragraphe','Texte_paragraphe','Format_paragraphe','format'],['visas','VISAS','Ordre_visa','Texte_visa','Categorie_visa','category'],['considerants','CONSIDERANTS','Ordre_considerant','Texte_considerant','Categorie_considerant','category']].forEach(([k,t,o,txt,cat,prop])=>p[k].forEach((x,i)=>put(t,x.id,{Deliberation:did,[o]:i+1,[txt]:x.text||'',[cat]:x[prop]||'Autre',...flags(x.id)})));
   p.articles.forEach((a,i)=>{
-   const aid=put('ARTICLES',a.id,{Deliberation:did,Numero_article:i+1,Categorie_article:a.category||'Autre',Titre_article:a.title||'',Texte_article:a.text||'',...flags(a.id)});
+   const aid=put('ARTICLES',a.id,{Deliberation:did,Numero_article:i+1,Categorie_article:a.category||'Autre',Titre_article:a.title||'',Texte_article:a.text||'',...((a.customPrefix||old.ARTICLES.some(r=>r.id===a.id&&'Prefixe_personnalise' in r))?{Prefixe_personnalise:a.customPrefix||''}:{}),...flags(a.id)});
    (a.tables||[]).forEach((t,ti)=>{
     const tid=put('TABLEAUX',t.id,{Article:aid,Position_dans_article:ti+1,Titre_tableau:t.title||'',Afficher_titre:!!t.showTitle,Afficher_entete:t.showHeader!==false,Style_tableau:t.style||'Institutionnel standard',Largeur_tableau:t.width||'Pleine largeur',Note_sous_tableau:t.note||'',Repeter_entete_sur_pages:t.repeatHeader!==false,...flags(t.id)});
     const cols=t.columns.map((c,ci)=>put('COLONNES_TABLEAUX',c.id,{Tableau:tid,Ordre_colonne:ci+1,Intitule_colonne:c.title||'',Format_valeur:c.format||'Texte',Alignement:c.align||'Automatique',Largeur_relative:Number(c.width)||null,Nombre_decimales:Number(c.decimals)||0}));

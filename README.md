@@ -1,5 +1,7 @@
-# Sanguinet – Délibérations v0.10.2
+# Sanguinet – Délibérations v0.11.0
 
-[Installation et ajustements de planification](MISE-A-JOUR-v0.10.2.md).
+[Installation, conseils terminés et documents signés](MISE-A-JOUR-v0.11.0.md).
 
-[Utilisation des exports](EXPORTS-v0.10.0.md) et [correction des délibérations exportées](MISE-A-JOUR-v0.10.1.md).
+Cinq widgets : planning.html, index.html, preparation.html, session.html et archives.html.
+
+Les anciens guides sont conservés à titre historique.

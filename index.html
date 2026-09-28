@@ -6,9 +6,9 @@
   <title>Sanguinet – Délibérations</title>
   <link rel="stylesheet" href="css/variables.css" />
   <link rel="stylesheet" href="css/layout.css" />
-  <link rel="stylesheet" href="css/components.css" /><link rel="stylesheet" href="css/drafting.css?v=0.9.0" />
+  <link rel="stylesheet" href="css/components.css" /><link rel="stylesheet" href="css/drafting.css?v=0.11.0" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
-</head>
+<link rel="stylesheet" href="css/archives.css?v=0.11.0"></head>
 <body>
   <div class="app-shell">
     <header class="topbar">
@@ -17,12 +17,12 @@
         <div class="brand-sub">l’esprit village</div>
       </div>
       <div class="topbar-title">Sanguinet <span>— Délibérations</span></div>
-      <div class="topbar-actions"><strong>Rédaction DGS · v0.9.0</strong></div>
+      <div class="topbar-actions"><strong>Rédaction DGS · v0.11.0</strong></div>
     </header>
 
     <div id="connectionStatus" class="connection-status loading">Initialisation du widget…</div>
 
-    <main class="page"><a id="planningBack" class="ghost-btn" href="planning.html?v=0.9.0" hidden>← Retour aux conseils programmés</a>
+    <main class="page"><a id="planningBack" class="ghost-btn" href="planning.html?v=0.11.0" hidden>← Retour aux conseils programmés</a>
       <section class="hero">
         
         <div class="hero-icon">📄</div>
@@ -43,7 +43,7 @@
               <label>Objet<input id="objet" placeholder="Objet de la délibération" maxlength="1000" /></label>
             </div>
             <div class="form-grid four">
-              <label>Rapporteur<select id="rapporteur"><option value="">— Sélectionner —</option></select></label>
+              <label>Rapporteur<input id="rapporteurSearch" type="search" placeholder="Rechercher un élu…" aria-label="Rechercher le rapporteur"><select id="rapporteur"><option value="">— Sélectionner —</option></select></label>
               <label>Service rédacteur<select id="unite"><option value="">— Sélectionner —</option></select></label>
               <label>Domaine<select id="domaine"><option>Administration générale</option><option>Finances</option><option>Ressources humaines</option><option>Commande publique</option><option>Urbanisme et aménagement</option><option>Patrimoine et travaux</option><option>Voirie et réseaux</option><option>Environnement et forêt</option><option>Enfance, éducation et jeunesse</option><option>Culture et vie associative</option><option>Police et sécurité</option><option>Intercommunalité</option><option>Action sociale</option><option>Autre</option></select></label>
               <label>Statut<input id="statut" value="Brouillon service" readonly></label>
@@ -72,8 +72,8 @@
           </article>
 
           <article class="card">
-            <div class="card-header"><h2>Annexes</h2><small>Pièces jointes gérées dans la table ANNEXES de Grist</small></div>
-            <div class="attachments" id="annexesList"></div>
+            <div class="card-header"><h2>Annexes</h2><small>PDF joints au projet</small></div>
+            <div class="attachments" id="annexesList"></div><button type="button" id="addAnnex" class="secondary-btn">+ Ajouter une annexe</button><p class="hint">Enregistrez le projet avant de joindre un PDF. Il sera intégré en fin de dossier.</p>
           </article>
         </section>
 
@@ -102,7 +102,7 @@
             
             
             
-            <p class="empty-note">Rédaction assurée par la DGS. Organisez l’ordre du jour dans la page Préparation du conseil. Les exports seront ajoutés ensuite.</p>
+            <p class="empty-note">Rédaction assurée par la DGS. Organisez l’ordre du jour dans la page Préparation du conseil. Les documents sont disponibles dans Préparation du conseil et Conseils terminés.</p>
             <small class="version" id="appVersion"></small>
           </article>
         </aside>
@@ -110,9 +110,9 @@
     </main>
   </div>
   <script src="src/app.js"></script>
-  <script src="src/drafting-data.js?v=0.9.0"></script>
-  <script src="src/deliberation-editor.js?v=0.9.0"></script>
-  <script src="src/table-editor.js?v=0.9.0"></script>
-  <script src="src/drafting.js?v=0.9.0"></script>
+  <script src="src/drafting-data.js?v=0.11.0"></script>
+  <script src="src/deliberation-editor.js?v=0.11.0"></script>
+  <script src="src/table-editor.js?v=0.11.0"></script>
+  <script src="vendor/pdf-lib.min.js"></script><script src="src/document-store.js?v=0.11.0"></script><script src="src/drafting.js?v=0.11.0"></script><script src="src/annex-upload.js?v=0.11.0"></script>
 </body>
 </html>

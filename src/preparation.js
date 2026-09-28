@@ -13,7 +13,7 @@
 
  function status(type,message){$('#status').className='connection-status '+type;$('#status').textContent=message;}
 
- async function fetchDB(){const result=await Promise.allSettled(P.tables.map(t=>grist.docApi.fetchTable(t)));const errors=result.flatMap((r,i)=>r.status==='rejected'?[P.tables[i]+': '+(r.reason?.message||r.reason)]:[]);if(errors.length)throw Error(errors.join(' ; '));if(!access)throw Error('Accès complet au document requis.');return Object.fromEntries(result.map((r,i)=>[P.tables[i],rows(r.value)]));}
+ async function fetchDB(){const result=await Promise.allSettled([...P.tables,'DOCUMENTS_GENERES'].map(t=>grist.docApi.fetchTable(t)));const errors=result.flatMap((r,i)=>r.status==='rejected'?[[...P.tables,'DOCUMENTS_GENERES'][i]+': '+(r.reason?.message||r.reason)]:[]);if(errors.length)throw Error(errors.join(' ; '));if(!access)throw Error('Accès complet au document requis.');return Object.fromEntries(result.map((r,i)=>[[...P.tables,'DOCUMENTS_GENERES'][i],rows(r.value)]));}
 
  function controls(){
 
@@ -51,7 +51,7 @@
 
   clearDownloads();id=next;const s=db.SEANCES_CM.find(s=>s.id===id),params=db.PARAMETRES_APPLICATION[0]||{};
 
-  $('#sessions').innerHTML='<option value="0">Choisir un conseil</option>'+db.SEANCES_CM.slice().sort((a,b)=>b.Date_heure_seance-a.Date_heure_seance).map(s=>`<option value="${s.id}">${esc(s.Libelle_seance||s.Reference_seance||'Séance '+s.id)}</option>`).join('');$('#sessions').value=String(id);
+  $('#sessions').innerHTML='<option value="0">Choisir un conseil</option>'+db.SEANCES_CM.filter(s=>s.Statut_seance!=='Terminée').slice().sort((a,b)=>b.Date_heure_seance-a.Date_heure_seance).map(s=>`<option value="${s.id}">${esc(s.Libelle_seance||s.Reference_seance||'Séance '+s.id)}</option>`).join('');$('#sessions').value=String(id);
 
   $('#sessionDate').value=P.localDate(s?.Date_heure_seance);$('#sessionPlace').value=s?.Lieu_seance||params.Lieu_seance_defaut||'';$('#members').value=s?.Nb_membres_exercice||params.Nb_conseillers||db.ELUS.filter(e=>e.Actif).length||'';$('#convocation').value=s?.Date_convocation?new Date(s.Date_convocation*1000).toISOString().slice(0,10):'';
 
@@ -68,7 +68,7 @@
 
  async function run(fn){if(busy)return;busy=true;controls();try{await fn();}catch(e){status('error',e.message);}finally{busy=false;controls();}}
 
- async function refresh(){if(!leave())return;await run(async()=>{db=await fetchDB();needsReload=false;show(db.SEANCES_CM.some(s=>s.id===id)?id:db.SEANCES_CM.filter(s=>s.Date_heure_seance>=Date.now()/1000).sort((a,b)=>a.Date_heure_seance-b.Date_heure_seance)[0]?.id||db.SEANCES_CM[0]?.id||0);status('connected','Connecté à Grist — préparation du conseil municipal.');});}
+ async function refresh(){if(!leave())return;await run(async()=>{db=await fetchDB();needsReload=false;show(db.SEANCES_CM.filter(s=>s.Statut_seance!=='Terminée').some(s=>s.id===id)?id:db.SEANCES_CM.filter(s=>s.Statut_seance!=='Terminée'&&s.Date_heure_seance>=Date.now()/1000).sort((a,b)=>a.Date_heure_seance-b.Date_heure_seance)[0]?.id||db.SEANCES_CM.find(s=>s.Statut_seance!=='Terminée')?.id||0);status('connected','Connecté à Grist — préparation du conseil municipal.');});}
 
  async function save(build){if(needsReload||!access)return;await run(async()=>{const fresh=await fetchDB();if(JSON.stringify(fresh)!==JSON.stringify(db))throw Error('Les données ont changé dans Grist. Actualisez avant d’enregistrer ; vos modifications restent à l’écran.');const plan=build(fresh);if(!access)throw Error('Accès complet requis.');await grist.docApi.applyUserActions(plan.actions);id=plan.id;needsReload=true;baseAgenda=JSON.stringify(desired);baseForm=JSON.stringify(fields());try{db=await fetchDB();needsReload=false;show(id);status('connected','✓ Enregistré dans Grist.');}catch(e){status('error','Enregistrement effectué, mais relecture impossible. Cliquez sur Actualiser.');}});}
 
@@ -100,11 +100,12 @@
  function clearDownloads(){downloadUrls.forEach(url=>URL.revokeObjectURL(url));downloadUrls=[];$('#exportResult').replaceChildren();}
  function exportControls(){
   if(dirty()||needsReload||!access)clearDownloads();
-  const hasLetter=$('#exportKind').value!=='projects';$('#letterFields').hidden=!hasLetter;
-  $('#generateDocuments').disabled=!id||busy||needsReload||dirty()||!access;
+  const locked=!!db.SEANCES_CM.find(s=>s.id===id)?.Ordre_du_jour_valide;$('#beforeDocuments').hidden=!locked;if(!locked)clearDownloads();const signed=DocumentStore.latest(db,id);$('#signedLetterStatus').textContent=signed?(signed.Empreinte_source===DocumentStore.source(db,id)?'Signée archivée — version '+signed.Version+' utilisée dans le dossier.':'La convocation signée est à remplacer : la séance ou son ordre du jour a changé.'):'Aucune convocation signée archivée : le dossier utilisera la convocation générée, non signée.';$('#downloadSignedLetter').hidden=!signed;$('#uploadSignedLetter').disabled=busy||dirty()||!access;$('#freshLetterLabel').hidden=$('#exportKind').value!=='convocation';const hasLetter=$('#exportKind').value!=='projects'&&(!signed||($('#exportKind').value==='convocation'&&$('#freshLetter').checked));$('#letterFields').hidden=!hasLetter;
+  $('#generateDocuments').disabled=!id||busy||needsReload||dirty()||!access||!locked;
   $('#exportHint').textContent=!id?'Sélectionnez un conseil.':dirty()?'Enregistrez vos modifications avant de générer les fichiers.':db.SEANCES_CM.find(s=>s.id===id)?.Ordre_du_jour_valide?'L’ordre du jour est verrouillé. Les exports reprennent les données enregistrées.':'La préparation est encore ouverte. Les fichiers sont des versions de travail et devront être régénérés après toute modification.';
  }
  $('#exportKind').onchange=()=>{clearDownloads();$('#annexWarning').hidden=true;$('#annexConfirm').hidden=true;$('#annexAcknowledged').checked=false;exportControls();};
+ $('#freshLetter').onchange=()=>{clearDownloads();exportControls();};
  for(const selector of ['#exportColor','#exportPdf','#exportWord','#exportDate','#exportSigner','#exportQuality'])$(selector).onchange=clearDownloads;
  $('#generateDocuments').onclick=()=>run(async()=>{
   if(dirty()||needsReload||!id||!access)throw Error('Enregistrez vos modifications puis actualisez la séance.');
@@ -115,17 +116,18 @@
   if(!access)throw Error('Accès complet au document requis.');
   const fresh=Object.fromEntries(result.map((r,i)=>[CouncilExports.tables[i],rows(r.value)]));
   if(JSON.stringify(fresh.SEANCES_CM)!==JSON.stringify(db.SEANCES_CM)||JSON.stringify(fresh.ORDRE_DU_JOUR)!==JSON.stringify(db.ORDRE_DU_JOUR)||JSON.stringify(fresh.DELIBERATIONS)!==JSON.stringify(db.DELIBERATIONS))throw Error('La séance ou ses projets ont changé. Cliquez sur Actualiser avant de générer.');
-  const ids=new Set(fresh.ORDRE_DU_JOUR.filter(p=>p.Seance===id).map(p=>p.Deliberation));
-  const annexes=$('#exportKind').value==='convocation'?[]:fresh.ANNEXES.filter(a=>ids.has(a.Deliberation));
-  $('#annexWarning').hidden=!annexes.length;$('#annexConfirm').hidden=!annexes.length;
-  $('#annexWarning').textContent=annexes.length?'Les pièces annexes ne sont pas fusionnées dans cette version. Elles sont mentionnées dans les projets et doivent être jointes séparément : '+annexes.map(a=>a.Titre_annexe||'Annexe sans titre').join(' ; '):'';
-  const opt={kind:$('#exportKind').value,bw:$('#exportColor').value==='bw',pdf:$('#exportPdf').checked,word:$('#exportWord').checked,letterDate:$('#exportDate').value,signer:$('#exportSigner').value.trim(),quality:$('#exportQuality').value.trim(),annexesAcknowledged:$('#annexAcknowledged').checked};
+  $('#annexWarning').hidden=true;$('#annexConfirm').hidden=true;
+  const opt={api:grist.docApi,freshLetter:$('#exportKind').value==='convocation'&&$('#freshLetter').checked,kind:$('#exportKind').value,bw:$('#exportColor').value==='bw',pdf:$('#exportPdf').checked,word:$('#exportWord').checked,letterDate:$('#exportDate').value,signer:$('#exportSigner').value.trim(),quality:$('#exportQuality').value.trim(),annexesAcknowledged:$('#annexAcknowledged').checked};
   const output=await CouncilExports.generate(fresh,id,opt);
-  if(!access)throw Error('L’accès au document a été retiré.');
+  if(!access)throw Error('L’accès au document a été retiré.');const after=await fullDB();if(DocumentStore.fingerprint(after)!==DocumentStore.fingerprint(fresh))throw Error('Les données ont changé pendant la génération. Actualisez et recommencez.');
   const message=document.createElement('p');message.textContent='Fichiers prêts. Cliquez sur chaque lien pour les télécharger.';$('#exportResult').append(message);
-  for(const file of output.files){const link=document.createElement('a'),url=URL.createObjectURL(file.blob);downloadUrls.push(url);link.href=url;link.download=file.name;link.className='secondary-btn';link.textContent='Télécharger '+(file.name.endsWith('.pdf')?'le PDF':'le Word');$('#exportResult').append(link);}
+  for(const file of output.files){const link=document.createElement('a'),url=URL.createObjectURL(file.blob);downloadUrls.push(url);link.href=url;link.download=file.name;link.className='secondary-btn';link.textContent=file.name;$('#exportResult').append(link);}
   status('connected','✓ Documents générés à partir des données enregistrées. Aucun envoi effectué.');
  });
+
+ async function fullDB(){const values=await Promise.all(CouncilExports.tables.map(t=>grist.docApi.fetchTable(t)));return Object.fromEntries(values.map((v,i)=>[CouncilExports.tables[i],rows(v)]));}
+ $('#uploadSignedLetter').onclick=()=>run(async()=>{if(dirty()||!access||!db.SEANCES_CM.find(s=>s.id===id)?.Ordre_du_jour_valide)throw Error('Enregistrez et verrouillez l’ordre du jour.');const file=$('#signedLetterFile').files[0];const check=()=>{if(!access)throw Error('Accès retiré.');};await DocumentStore.archive(grist.docApi,db,id,0,file,fullDB,check);$('#signedLetterFile').value='';db=await fetchDB();show(id);status('connected','Convocation signée archivée. Les versions précédentes sont conservées.');});
+ $('#downloadSignedLetter').onclick=()=>run(async()=>{const signed=DocumentStore.latest(db,id),aid=DocumentStore.ids(signed?.Fichier)[0];const bytes=await DocumentStore.download(grist.docApi,aid);if(!access)throw Error('Accès retiré.');const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));downloadUrls.push(url);const link=document.createElement('a');link.href=url;link.download=signed.Nom_original||'Convocation signée.pdf';link.textContent='Télécharger la convocation signée';$('#exportResult').append(link);});
  window.addEventListener('beforeunload',e=>{if(db&&dirty()){e.preventDefault();e.returnValue='';}});
 
  if(!window.grist||parent===window){status('warning','Installez preparation.html dans un widget Grist avec accès complet pour planifier vos conseils.');return;}

@@ -1,0 +1,8 @@
+(function(root){
+'use strict';
+const next=db=>db.SEANCES_CM.filter(s=>s.Statut_seance!=='Terminée'&&s.Statut_seance!=='Annulée').sort((a,b)=>(b.Statut_seance==='En cours')-(a.Statut_seance==='En cours')||(a.Date_heure_seance||Infinity)-(b.Date_heure_seance||Infinity)||a.id-b.id)[0];
+function launch(db,id){const s=next(db);if(!s||s.id!==id)throw Error('Seul le prochain conseil peut être lancé.');if(!s.Ordre_du_jour_valide)throw Error('Verrouillez l’ordre du jour avant de lancer le conseil.');if(!db.ORDRE_DU_JOUR.some(p=>p.Seance===id))throw Error('L’ordre du jour est vide.');return [['UpdateRecord','SEANCES_CM',id,{Statut_seance:'En cours'}],event(id,'Lancement du conseil municipal')];}
+function finish(db,id){const s=db.SEANCES_CM.find(s=>s.id===id),points=db.ORDRE_DU_JOUR.filter(p=>p.Seance===id);if(s?.Statut_seance!=='En cours')throw Error('Le conseil doit avoir été lancé.');if(!points.length||points.some(p=>p.Statut_suivi!=='Validé'))throw Error('Validez tous les points avant de terminer le conseil.');const events=db.JOURNAL_ACTIONS.filter(j=>j.Seance===id&&['Suspension de séance','Reprise de séance'].includes(j.Description)).sort((a,b)=>b.Date_action-a.Date_action||b.id-a.id);if(events[0]?.Description==='Suspension de séance')throw Error('Reprenez la séance avant de la terminer.');return [['UpdateRecord','SEANCES_CM',id,{Statut_seance:'Terminée'}],event(id,'Clôture du conseil municipal')];}
+function event(id,description){return ['AddRecord','JOURNAL_ACTIONS',null,{Seance:id,Date_action:Date.now()/1000,Description:description,Type_action:'Autre',Niveau:'Information'}];}
+root.SessionFlow={next,launch,finish};if(typeof module!=='undefined')module.exports=root.SessionFlow;
+})(typeof window==='undefined'?globalThis:window);

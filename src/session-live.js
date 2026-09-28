@@ -25,7 +25,7 @@ function log(description,extra={}){return ['AddRecord','JOURNAL_ACTIONS',null,{D
 function setBusy(value){busy=value;document.body.classList.toggle('busy',value);$('.session-page').inert=value;$('#rareModal').inert=value;}
 async function execute(fn){if(busy)return;setBusy(true);$('#modalError').hidden=true;try{await fn();}catch(e){status('error',e.message||String(e));if(!$('#rareModal').hidden){$('#modalError').textContent=e.message||String(e);$('#modalError').hidden=false;}}finally{setBusy(false);}}
 function leave(){return !dirty||confirm('Les modifications non enregistrées seront abandonnées. Continuer ?');}
-async function refresh(){db=await store.load();if(!session())sessionId=db.SEANCES_CM[0]?.id||0;if(!point())pointId=points()[0]?.id||0;editing=false;dirty=false;restore();render();status('connected','Connecté à Grist — les enregistrements sont conservés dans votre document.');}
+async function refresh(){db=await store.load();sessionId=SessionFlow.next(db)?.id||0;if(!point())pointId=points()[0]?.id||0;editing=false;dirty=false;restore();render();status('connected','Connecté à Grist — les enregistrements sont conservés dans votre document.');}
 function restore(){
  const d=delib();detail=false;
  draft={decision:d?(['Ajournée','Retirée'].includes(d.Decision_seance)?d.Decision_seance:'Vote'):'Sans vote',mode:d?.Mode_saisie_vote==='Unanimité'?'unanimity':'groups',scrutin:d?.Mode_scrutin&&d.Mode_scrutin!=='Sans vote'?d.Mode_scrutin:'Vote à main levée',tie:d?.Departage||'',groups:{},overrides:{},motives:{}};
@@ -38,9 +38,10 @@ function restore(){
  // No default vote is assigned to a new deliberation. Unanimity requires an explicit click.
 }
 function render(){
- $('#sessionPicker').innerHTML=option('','Choisir une séance',sessionId)+db.SEANCES_CM.map(s=>option(s.id,s.Libelle_seance||s.Reference_seance||'Séance #'+s.id,sessionId)).join('');
+ $('#sessionPicker').innerHTML=option('','Choisir une séance',sessionId)+db.SEANCES_CM.filter(s=>s.id===SessionFlow.next(db)?.id).map(s=>option(s.id,s.Libelle_seance||s.Reference_seance||'Séance #'+s.id,sessionId)).join('');
  $$('#sessionPicker,#refreshBtn').forEach(e=>e.disabled=false);
  $('#connectedContent').hidden=!session();$('#liveHelp').textContent=session()?'Ordre du jour préparé en amont. Enregistrez vos modifications avant de changer de point.':'Aucune séance sélectionnée. Sélectionnez une séance préparée dans Grist, puis cliquez sur Actualiser si nécessaire.';
+ $('#launchCouncil').hidden=!session()||session().Statut_seance==='En cours';$('#finishCouncil').hidden=!session()||session().Statut_seance!=='En cours';$('#finishCouncil').disabled=dirty||!points().length||points().some(p=>p.Statut_suivi!=='Validé');$('#connectedContent').inert=session()?.Statut_seance!=='En cours';$('#flowHint').textContent=!session()?'Aucun conseil à lancer. Les conseils terminés sont disponibles dans leur page dédiée.':session().Statut_seance==='En cours'?'Conseil en cours. Terminez-le après validation de tous les points.':'Lancez le conseil pour activer l’appel et les votes.';
  if(!session())return;
  const s=session(),p=parts(),present=p.filter(x=>x.Statut_presence===D.PRESENT).length;
  $('#sessionTitle').textContent=s.Libelle_seance||'Séance';$('#sessionSubtitle').textContent=s.Date_heure_seance?new Date(s.Date_heure_seance*1000).toLocaleString('fr-FR',{timeZone:'Europe/Paris'}):'';
@@ -61,7 +62,7 @@ function render(){
  renderVotes();
 }
 function navigate(id){if(!leave())return;pointId=id;dirty=false;editing=false;restore();render();}
-function mark(){dirty=true;draft.tie='';renderVotes();}
+function mark(){dirty=true;$('#finishCouncil').disabled=true;draft.tie='';renderVotes();}
 function renderVotes(){
  const p=point();if(!p)return;const isVote=draft.decision==='Vote',isLocked=locked();
  $('.decision-card').hidden=!delib();$('#voteModeArea').hidden=!isVote;$('#scrutin').value=draft.scrutin;$('#scrutin').hidden=!isVote;
@@ -89,14 +90,18 @@ function renderVotes(){
  $$('.decision-card button,.decision-card select,.group-vote-btn,#detailPanel select,#tieChoice,#moreActionsBtn').forEach(e=>e.disabled=isLocked);
  $('#showExceptionsBtn').disabled=false;$('#saveDraftBtn').hidden=p.Statut_suivi==='Validé';$('#validateNextBtn').hidden=isLocked;$('#validateNextBtn').disabled=!!o.pending;$('#validateNextBtn').textContent=editing?'Valider les modifications':'Valider et passer au point suivant →';
 }
+$('#launchCouncil').onclick=()=>execute(async()=>{await store.fresh();await store.apply(SessionFlow.launch(db,sessionId));await refresh();});
+$('#finishCouncil').onclick=()=>{if(dirty||!confirm('Terminer ce conseil ? Il sera consultable dans Conseils terminés et ses votes seront protégés.'))return;execute(async()=>{await store.fresh();await store.apply(SessionFlow.finish(db,sessionId));await refresh();status('connected','Conseil terminé. Retrouvez ses documents dans Conseils terminés.');});};
 function openModal(title,body,save){modalTrigger=document.activeElement;$('#confirmRareBtn').hidden=false;$('#rareModalTitle').textContent=title;$('#rareModalBody').innerHTML=body;$('#modalError').hidden=true;$('#rareModal').hidden=false;$('#moreActionsMenu').hidden=true;$('#moreActionsBtn').setAttribute('aria-expanded','false');modalSave=save;$('#rareModalBody').querySelector('input,select,textarea')?.focus();}
 function closeModal(){if(busy)return;$('#confirmRareBtn').hidden=false;$('#rareModal').hidden=true;modalSave=null;modalTrigger?.focus();}
 function hideModal(){ $('#confirmRareBtn').hidden=false;$('#rareModal').hidden=true;modalSave=null; }
 function field(id,label,type='text',value='',required=false){return `<label>${label}<input id="${id}" type="${type}" value="${esc(value)}" ${required?'required':''}></label>`;}
 function settings(){
+ if(session()?.Statut_seance!=='En cours')throw Error('Lancez le conseil avant de faire l’appel.');
  if(!leave())return;
  const s=session(),old=parts(),ids=[...new Set([...D.active(db).map(e=>e.id),...old.map(p=>p.Elu)])];
  const callRows=ids.map(id=>{const p=old.find(r=>r.Elu===id),e=db.ELUS.find(e=>e.id===id);return {Seance:sessionId,Elu:id,Statut_presence:p?.Statut_presence||'',Mandataire:p?.Mandataire||0,Groupe_seance:p?.Groupe_seance??e?.Groupe_politique??0};});
+ let previousRemaining=callRows.filter(r=>!r.Statut_presence).length;
  let selected=callRows.find(r=>!r.Statut_presence)?.Elu||ids[0],donor=0;
  const label=r=>!r.Statut_presence?'À appeler':r.Statut_presence===D.PROXY?'Pouvoir à '+name(r.Mandataire):r.Statut_presence;
  openModal('Appel des élus',`<div id="callMain"><h3>Président et secrétaire de séance</h3><p>Ces deux champs sont obligatoires pour enregistrer l’appel.</p><div class="modal-grid"><label>Président<select id="president" required>${personOptions(s.President_seance)}</select></label><label>Secrétaire<select id="secretary" required>${personOptions(s.Secretaire_seance)}</select></label>${field('members','Membres en exercice','number',s.Nb_membres_exercice,true)}</div><p id="callProgress" role="status"></p><label>Élu à appeler ou à corriger<select id="callPerson"></select></label><section class="call-card"><h3 id="callName"></h3><p id="callState"></p><div class="call-buttons"><button type="button" id="callPresent">✓ Présent</button><button type="button" id="callProxy">↗ Absent ayant donné pouvoir</button><button type="button" id="callAbsent">Absent sans pouvoir</button></div><div id="absenceChoices" hidden><p>Précisez l’absence :</p><button type="button" data-absence="Absent excusé sans pouvoir">Absent excusé</button><button type="button" data-absence="Absent non excusé">Absent non excusé</button></div></section><p id="callFeedback" role="status"></p><p class="empty-note">Les choix seront sauvegardés avec « Enregistrer ». Vous pouvez reprendre un appel incomplet plus tard, après avoir renseigné le président et le secrétaire et les avoir marqués présents.</p></div><section id="proxyPicker" hidden aria-labelledby="proxyTitle"><h3 id="proxyTitle"></h3><label>Rechercher le mandataire<input id="proxySearch" type="search" placeholder="Nom ou prénom…" autocomplete="off"></label><p class="empty-note">Le mandataire choisi sera marqué présent automatiquement. Les élus portant déjà un autre pouvoir sont indisponibles.</p><div id="proxyResults"></div><button type="button" id="cancelProxy" class="ghost-btn">Retour à l’appel</button></section>`,async()=>{
@@ -117,6 +122,7 @@ function settings(){
   const remaining=callRows.filter(r=>!r.Statut_presence).length;
   $('#callProgress').textContent=`${callRows.length-remaining} / ${callRows.length} élus renseignés · ${callRows.filter(r=>r.Statut_presence===D.PRESENT).length} présents · ${callRows.filter(r=>r.Statut_presence===D.PROXY).length} pouvoirs · ${remaining} à appeler`;
   $('#callFeedback').textContent=message;$('#callPerson').focus();
+  if(previousRemaining>0&&remaining===0){$('#callFeedback').textContent='Appel complet. Vous pouvez maintenant l’enregistrer.';if(confirm('L’appel est complet. Souhaitez-vous l’enregistrer maintenant ?'))setTimeout(()=>$('#confirmRareBtn').click(),0);}previousRemaining=remaining;
  }
  function next(message){selected=callRows.find(r=>!r.Statut_presence)?.Elu||selected;showCall(message);}
  function changePresence(value){try{CallModel.setPresence(callRows,selected,value);next(name(selected)+' : '+value+'.');}catch(e){$('#callFeedback').textContent=e.message;}}
@@ -140,6 +146,7 @@ function settings(){
  showCall();
 }
 async function saveVote(validate){
+ if(session()?.Statut_seance!=='En cours')throw Error('Lancez le conseil avant de saisir les votes.');
  if(validate&&(!session().President_seance||!session().Secretaire_seance))throw Error('Renseignez le président et le secrétaire dans l’appel avant toute validation.');
  if(validate&&$('#liveSessionStatus').textContent==='Suspendue')throw Error('Reprenez la séance avant de valider un résultat.');
  if(locked())throw Error('Utilisez « Modifier le résultat » avant de corriger un point validé.');
@@ -170,6 +177,7 @@ async function saveVote(validate){
  if(validate&&!wasEdit&&next)pointId=next;dirty=false;editing=false;await refresh();status('connected',validate?'Résultat enregistré et validé dans Grist.':'Brouillon enregistré dans Grist.');
 }
 function rare(type){
+ if(session()?.Statut_seance!=='En cours')throw Error('Le conseil doit être en cours.');
  if(locked())return;
  if(type==='proxy'){settings();return;}
  if(type==='nppv'){

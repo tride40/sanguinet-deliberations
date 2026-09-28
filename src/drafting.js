@@ -54,6 +54,7 @@
    const fresh=await fetchDB();
    if(id&&JSON.stringify(D.scope(fresh,id))!==originalScope)throw Error('Ce projet a été modifié dans Grist depuis son ouverture. Votre saisie est conservée à l’écran. Copiez les passages à garder avant d’actualiser.');
    if(originId&&JSON.stringify(fresh.SUJETS_PREVISIONNELS.find(s=>s.id===originId))!==originSnapshot)throw Error('Ce sujet a été modifié ou déjà utilisé depuis son ouverture. Actualisez avant de poursuivre.');
+   if(p.articles.some(a=>a.customPrefix)){await DocumentStore.ensure(grist.docApi,'ARTICLES',[{id:'Prefixe_personnalise',type:'Text'}]);}
    const batch=D.plan(fresh,id,p,originId);
    if(!access)throw Error('L’accès complet au document est requis.');
    if(batch.actions.length)await grist.docApi.applyUserActions(batch.actions);
@@ -75,6 +76,7 @@
  }
  $('#saveBtn').onclick=save;$('#previewDraft').onclick=preview;
  $('#projectSearch').oninput=list;
+ $('#rapporteurSearch').oninput=()=>{const norm=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();const q=norm($('#rapporteurSearch').value);const selected=$('#rapporteur').value;$('#rapporteur').innerHTML='<option value="">— Sélectionner —</option>'+db.ELUS.filter(e=>String(e.id)===selected||norm(e.Nom_complet||'').includes(q)).map(e=>`<option value="${e.id}" ${String(e.id)===selected?'selected':''}>${esc(e.Nom_complet)}</option>`).join('');};
  $('#projectPicker').onchange=()=>{const next=Number($('#projectPicker').value);if(mayLeave())show(next);else $('#projectPicker').value=String(id);};
  $('#newDraft').onclick=()=>{if(mayLeave()){window.TableEditor.close();show(0);$('#objet').focus();}};
  $('#reloadDraft').onclick=refresh;
@@ -82,10 +84,10 @@
  document.addEventListener('change',e=>{if(e.target.closest('#draftFields'))controls();});
  window.addEventListener('draft-render',()=>{if(initialized)controls();});
  window.addEventListener('beforeunload',e=>{if(dirty()){e.preventDefault();e.returnValue='';}});
- window.Drafting={readOnly};
+ window.Drafting={readOnly,context:()=>({db,id,access,busy,dirty:dirty()}),fetchDB,refresh,run};
  show(0);$('#planningBack').hidden=route.get('from')!=='planning';
  window.addEventListener('DOMContentLoaded',()=>{
-  $('#appVersion').textContent='v0.9.0 · Rédaction';
+  $('#appVersion').textContent='v0.11.0 · Rédaction';
   if(!window.grist||parent===window){initialized=true;status('warning','Aperçu local : vous pouvez essayer la rédaction et les tableaux. Pour enregistrer, ouvrez cette page comme widget Grist avec accès complet.');controls();return;}
   grist.onOptions((options,interaction)=>{
    access=(interaction?.accessLevel??interaction?.access_level)==='full';

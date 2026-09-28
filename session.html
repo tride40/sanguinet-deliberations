@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="css/components.css" />
   <link rel="stylesheet" href="css/session.css" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
-  <link rel="stylesheet" href="css/session-live.css?v=0.5.3" />
+  <link rel="stylesheet" href="css/session-live.css?v=0.11.0" />
 </head>
 <body>
   <div class="session-shell">
@@ -22,7 +22,7 @@
       <div class="topbar-actions">
         <div class="user-chip">
           <div class="avatar">CM</div>
-          <div><strong>Suivi de séance</strong><small>Version 0.5.3 · Grist</small></div>
+          <div><strong>Suivi de séance</strong><small>Version 0.11.0 · Grist</small></div>
         </div>
       </div>
     </header>
@@ -35,7 +35,7 @@
         <button id="refreshBtn" class="ghost-btn" disabled>Actualiser</button>
       </section>
       <p id="liveHelp" class="empty-note">Les données réelles seront chargées depuis Grist. Aucun enregistrement n’est effectué au chargement.</p>
-      <div id="connectedContent" hidden>
+      <section class="card" style="margin:20px"><button id="launchCouncil" class="primary-inline" hidden>Lancer le conseil municipal</button><button id="finishCouncil" class="primary-inline" hidden>Terminer le conseil municipal</button><p id="flowHint"></p><a href="archives.html?v=0.11.0">Consulter les conseils terminés</a></section><div id="connectedContent" hidden>
       <section class="session-summary card">
         <div class="session-summary-main">
           <div class="session-date-icon">▣</div>
@@ -162,8 +162,8 @@
     </div>
   </div>
 
-  <script src="src/session-data.js"></script>
-  <script src="src/call-model.js?v=0.5.3"></script>
-  <script src="src/session-live.js?v=0.5.3"></script>
+  <script src="src/session-flow.js?v=0.11.0"></script><script src="src/session-data.js"></script>
+  <script src="src/call-model.js?v=0.11.0"></script>
+  <script src="src/session-live.js?v=0.11.0"></script>
 </body>
 </html>

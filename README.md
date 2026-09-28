@@ -1,7 +1,5 @@
-# Sanguinet – Délibérations v0.10.1
+# Sanguinet – Délibérations v0.10.2
 
-[Installer le correctif](MISE-A-JOUR-v0.10.1.md).
+[Installation et ajustements de planification](MISE-A-JOUR-v0.10.2.md).
 
-[Utilisation des exports](EXPORTS-v0.10.0.md).
-
-Les coordonnées mairie et les références de projets Grist sont retirées des délibérations exportées.
+[Utilisation des exports](EXPORTS-v0.10.0.md) et [correction des délibérations exportées](MISE-A-JOUR-v0.10.1.md).

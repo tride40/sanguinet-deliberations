@@ -13,13 +13,25 @@
   $('#draftFields').querySelectorAll('input,select,textarea,button').forEach(e=>{e.disabled=readOnly()&&e.id!=='previewDraft';});
   $('#seance').disabled=readOnly()||!!(id&&db.ORDRE_DU_JOUR.some(p=>p.Deliberation===id));
   $('#saveBtn').disabled=!access||busy||readOnly()||loadFailed;
-  $('#projectPicker').disabled=busy||!access;$('#newDraft').disabled=busy||!access;$('#reloadDraft').disabled=busy||!access;
+  $('#projectPicker').inert=busy||!access;$('#newDraft').disabled=busy||!access;$('#reloadDraft').disabled=busy||!access;
   $('#draftMessage').textContent=readOnly()?'Lecture seule : séance verrouillée ou engagée, projet validé ou contenus structurés à préserver.':dirty()?'● Modifications non enregistrées':id?'✓ Projet enregistré dans Grist':'Nouveau brouillon — saisissez son objet pour pouvoir l’enregistrer.';
  }
+ let libraryLimit=12;
+ const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('fr');
+ function councilOf(d){return db.SEANCES_CM.find(s=>s.id===(d.Seance||db.ORDRE_DU_JOUR.find(p=>p.Deliberation===d.id)?.Seance));}
+ function archived(d){return councilOf(d)?.Statut_seance==='Terminée';}
+ function councilLabel(s){return s?(s.Date_heure_seance?new Date(s.Date_heure_seance*1000).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric',timeZone:'Europe/Paris'}):s.Libelle_seance||'Date à préciser'):'Sans conseil prévu';}
  function list(){
-  const q=$('#projectSearch').value.toLocaleLowerCase('fr');
-  $('#projectPicker').innerHTML='<option value="0">Nouveau projet</option>'+db.DELIBERATIONS.filter(d=>d.id===id||(d.Objet||'').toLocaleLowerCase('fr').includes(q)).sort((a,b)=>b.id-a.id).map(d=>`<option value="${d.id}">${esc(d.Objet||'Sans objet')} — ${esc(d.Statut_deliberation==='Brouillon service'?'Brouillon DGS':(d.Statut_deliberation||'Brouillon'))}</option>`).join('');
-  $('#projectPicker').value=String(id);
+  const filter=$('#projectCouncil'),saved=filter.value;
+  filter.innerHTML='<option value="all">Tous les conseils</option><option value="none">Sans conseil</option>'+db.SEANCES_CM.filter(s=>s.Statut_seance!=='Terminée').slice().sort((a,b)=>(a.Date_heure_seance||Infinity)-(b.Date_heure_seance||Infinity)).map(s=>`<option value="${s.id}">${esc(councilLabel(s))}</option>`).join('');filter.value=[...filter.options].some(o=>o.value===saved)?saved:'all';
+  const q=norm($('#projectSearch').value),state=$('#projectState').value,sort=$('#projectSort').value;
+  const projects=db.DELIBERATIONS.filter(d=>!archived(d)).filter(d=>{
+   const session=councilOf(d),locked=D.locked(db,d.id);
+   return (filter.value==='all'||(filter.value==='none'?!session:String(session?.id)===filter.value))&&(state==='all'||(state==='locked'?locked:!locked))&&norm([d.Objet,d.Domaine,councilLabel(session)].join(' ')).includes(q);
+  }).sort((a,b)=>sort==='title'?(a.Objet||'').localeCompare(b.Objet||'','fr'):sort==='domain'?(a.Domaine||'').localeCompare(b.Domaine||'','fr')||(a.Objet||'').localeCompare(b.Objet||'','fr'):sort==='council'?(councilOf(a)?.Date_heure_seance||Infinity)-(councilOf(b)?.Date_heure_seance||Infinity)||b.id-a.id:b.id-a.id);
+  $('#projectCount').textContent=projects.length+' projet'+(projects.length>1?'s':'')+' · '+Math.min(libraryLimit,projects.length)+' affiché'+(Math.min(libraryLimit,projects.length)>1?'s':'');
+  $('#projectPicker').innerHTML=projects.slice(0,libraryLimit).map(d=>{const locked=D.locked(db,d.id),session=councilOf(d);return `<button type="button" class="draft-card ${d.id===id?'selected':''}" data-draft="${d.id}" aria-pressed="${d.id===id}"><span class="draft-card-state">${locked?'Lecture seule':'Modifiable'}${d.id===id?' · Projet ouvert':''}</span><strong>${esc(d.Objet||'Sans objet')}</strong><span class="draft-card-council ${session?'':'unassigned'}">${session?'Conseil du ':''}${esc(councilLabel(session))}</span><span class="draft-card-meta">${esc(d.Domaine||'Domaine non renseigné')} · ${esc(d.Statut_deliberation==='Brouillon service'?'Brouillon DGS':d.Statut_deliberation||'Brouillon')}</span><span class="draft-card-open">${locked?'Consulter':'Reprendre la rédaction'} →</span></button>`;}).join('')||'<p class="library-empty">Aucun projet ne correspond à ces critères. Modifiez les filtres ou créez un nouveau projet.</p>';
+  $('#moreProjects').hidden=projects.length<=libraryLimit;
  }
  function show(next){
   originId=0;originSnapshot='';id=next;const loaded=D.load(db,id);if(!id){const units=db.UNITES_ORGANISATIONNELLES.filter(u=>['dgs','direction generale des services'].includes((u.Nom_service||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()));if(units.length===1)loaded.fields.Unite_redactrice=units[0].id;}E.load(loaded);baseline=fingerprint();originalScope=JSON.stringify(D.scope(db,id));list();controls();
@@ -75,9 +87,12 @@
   modal.showModal();
  }
  $('#saveBtn').onclick=save;$('#previewDraft').onclick=preview;
- $('#projectSearch').oninput=list;
+
  $('#rapporteurSearch').oninput=()=>{const norm=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();const q=norm($('#rapporteurSearch').value);const selected=$('#rapporteur').value;$('#rapporteur').innerHTML='<option value="">— Sélectionner —</option>'+db.ELUS.filter(e=>String(e.id)===selected||norm(e.Nom_complet||'').includes(q)).map(e=>`<option value="${e.id}" ${String(e.id)===selected?'selected':''}>${esc(e.Nom_complet)}</option>`).join('');};
- $('#projectPicker').onchange=()=>{const next=Number($('#projectPicker').value);if(mayLeave())show(next);else $('#projectPicker').value=String(id);};
+ $('#projectPicker').onclick=e=>{const card=e.target.closest('[data-draft]');if(!card||busy||!access)return;const next=Number(card.dataset.draft);if(next!==id&&mayLeave()){window.TableEditor.close();show(next);$('#draftMessage').scrollIntoView({block:'start'});$('#objet').focus();}};
+ for(const selector of ['#projectSearch','#projectCouncil','#projectState','#projectSort'])$(selector).addEventListener(selector==='#projectSearch'?'input':'change',()=>{libraryLimit=12;list();});
+ $('#resetProjectFilters').onclick=()=>{$('#projectSearch').value='';$('#projectCouncil').value='all';$('#projectState').value='all';$('#projectSort').value='recent';libraryLimit=12;list();};
+ $('#moreProjects').onclick=()=>{libraryLimit+=12;list();};
  $('#newDraft').onclick=()=>{if(mayLeave()){window.TableEditor.close();show(0);$('#objet').focus();}};
  $('#reloadDraft').onclick=refresh;
  document.addEventListener('input',e=>{if(e.target.closest('#draftFields'))controls();});
@@ -87,7 +102,7 @@
  window.Drafting={readOnly,context:()=>({db,id,access,busy,dirty:dirty()}),fetchDB,refresh,run};
  show(0);$('#planningBack').hidden=route.get('from')!=='planning';
  window.addEventListener('DOMContentLoaded',()=>{
-  $('#appVersion').textContent='v0.11.0 · Rédaction';
+  $('#appVersion').textContent='v0.11.2 · Rédaction';
   if(!window.grist||parent===window){initialized=true;status('warning','Aperçu local : vous pouvez essayer la rédaction et les tableaux. Pour enregistrer, ouvrez cette page comme widget Grist avec accès complet.');controls();return;}
   grist.onOptions((options,interaction)=>{
    access=(interaction?.accessLevel??interaction?.access_level)==='full';

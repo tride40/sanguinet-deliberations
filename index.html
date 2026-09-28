@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="css/layout.css" />
   <link rel="stylesheet" href="css/components.css" /><link rel="stylesheet" href="css/drafting.css?v=0.11.0" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
-<link rel="stylesheet" href="css/archives.css?v=0.11.0"></head>
+<link rel="stylesheet" href="css/archives.css?v=0.11.0"><link rel="stylesheet" href="css/draft-library.css?v=0.11.2"></head>
 <body>
   <div class="app-shell">
     <header class="topbar">
@@ -17,7 +17,7 @@
         <div class="brand-sub">l’esprit village</div>
       </div>
       <div class="topbar-title">Sanguinet <span>— Délibérations</span></div>
-      <div class="topbar-actions"><strong>Rédaction DGS · v0.11.0</strong></div>
+      <div class="topbar-actions"><strong>Rédaction DGS · v0.11.2</strong></div>
     </header>
 
     <div id="connectionStatus" class="connection-status loading">Initialisation du widget…</div>
@@ -32,7 +32,9 @@
         </div>
       </section>
 
-      <section class="card project-bar"><label>Rechercher un projet<input id="projectSearch" placeholder="Objet du projet…"></label><label>Reprendre un projet<select id="projectPicker"><option value="">Nouveau projet</option></select></label><button id="newDraft" class="secondary-btn">+ Nouveau projet</button><button id="reloadDraft" class="ghost-btn">Actualiser</button></section>
+      <section class="card draft-library" aria-label="Projets de délibération"><div class="library-heading"><div><h2>Vos projets de délibération</h2><p>Retrouvez une rédaction en cours ou commencez un nouveau projet.</p></div><div><button id="newDraft" class="primary-btn">+ Nouveau projet</button><button id="reloadDraft" class="ghost-btn">Actualiser</button></div></div>
+<div class="library-filters"><label>Rechercher<input id="projectSearch" type="search" placeholder="Objet, conseil ou domaine…"></label><label>Conseil prévu<select id="projectCouncil"><option value="all">Tous les conseils</option><option value="none">Sans conseil</option></select></label><label>État<select id="projectState"><option value="all">Tous les états</option><option value="editable">Modifiable</option><option value="locked">En lecture seule</option></select></label><label>Classer par<select id="projectSort"><option value="recent">Création : plus récents</option><option value="council">Date du conseil</option><option value="title">Objet : A à Z</option><option value="domain">Domaine</option></select></label></div>
+<div class="library-summary"><span id="projectCount" role="status" aria-live="polite"></span><button id="resetProjectFilters" class="ghost-btn">Réinitialiser les filtres</button></div><div id="projectPicker" class="draft-cards"></div><button id="moreProjects" class="ghost-btn" hidden>Afficher davantage</button><p class="library-footnote">Les délibérations des conseils clôturés sont conservées dans la page Conseils terminés.</p></section>
       <p id="draftMessage" role="status" aria-live="polite">Connexion en cours…</p>
       <fieldset id="draftFields" disabled><div class="editor-grid">
         <section class="editor-column">
@@ -113,6 +115,6 @@
   <script src="src/drafting-data.js?v=0.11.0"></script>
   <script src="src/deliberation-editor.js?v=0.11.0"></script>
   <script src="src/table-editor.js?v=0.11.0"></script>
-  <script src="vendor/pdf-lib.min.js"></script><script src="src/document-store.js?v=0.11.0"></script><script src="src/drafting.js?v=0.11.0"></script><script src="src/annex-upload.js?v=0.11.0"></script>
+  <script src="vendor/pdf-lib.min.js"></script><script src="src/document-store.js?v=0.11.0"></script><script src="src/drafting.js?v=0.11.2"></script><script src="src/annex-upload.js?v=0.11.0"></script>
 </body>
 </html>

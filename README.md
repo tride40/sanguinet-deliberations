@@ -1,10 +1,7 @@
-# Sanguinet – Délibérations v0.10.0
+# Sanguinet – Délibérations v0.10.1
 
-[Installation et exports avant conseil](EXPORTS-v0.10.0.md).
+[Installer le correctif](MISE-A-JOUR-v0.10.1.md).
 
-- planning.html : dates des conseils et sujets à prévoir.
-- index.html : rédaction des projets avec ou sans séance.
-- preparation.html : préparation de l’ordre du jour et téléchargements PDF/Word.
-- session.html : appel, pouvoirs et votes, inchangés.
+[Utilisation des exports](EXPORTS-v0.10.0.md).
 
-Aucune nouvelle structure Grist après activation de la v0.8. Les fichiers vendor et assets sont nécessaires. Les annexes doivent être jointes séparément ; l’interface le signale avant l’export. Les actes définitifs et les archives restent la prochaine étape. Les anciens guides décrivent les versions précédentes.
+Les coordonnées mairie et les références de projets Grist sont retirées des délibérations exportées.

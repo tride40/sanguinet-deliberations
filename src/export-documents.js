@@ -116,7 +116,6 @@ async function layout(db,id,opt){
  if(opt.kind!=='convocation')for(const a of data.agenda.filter(a=>a.d)){
   const d=a.d,related=(t,key)=>sort(db[t].filter(r=>r.Deliberation===d.id&&included(r)),key);
   fresh('project',d.Reference_projet||'Projet '+a.number);
-  put('Projet n° '+(d.Reference_projet||String(a.number).padStart(2,'0')),{align:'right',after:15});
   title('PROJET DE DÉLIBÉRATION DU CONSEIL MUNICIPAL');
   put('OBJET : '+d.Objet,{size:12,bold:true,align:'center',after:15,keep:30});
   put('Séance prévue : '+sessionDate+' à '+hour,{size:9,after:15});
@@ -175,9 +174,11 @@ async function pdf(model,logo){
   const page=doc.addPage([W,H]);
   const line=(s,x,top,size=10.5,isBold=false,ink='000000',align='left',width=R-L)=>{const font=isBold?bold:normal,tw=font.widthOfTextAtSize(s,size);const offset=align==='right'?width-tw:align==='center'?(width-tw)/2:0;page.drawText(s,{x:x+offset,y:H-top-size,size,font,color:color(ink)});};
   line('RÉPUBLIQUE FRANÇAISE',L,40,8);line('DÉPARTEMENT DES LANDES',L,54,8.5);line('Ville de Sanguinet',L,70,9,true);page.drawImage(img,{x:R-111,y:H-94,width:111,height:57.6});
+  if(p.kind!=='project'){
   page.drawLine({start:{x:L,y:91},end:{x:R,y:91},thickness:.4,color:color('D6D6D6')});
   line('MAIRIE DE SANGUINET',L,H-82,8,true,accent);line(text(data.opt.address),L,H-69,8,false,'505050');line(text(data.opt.city),L,H-57,8,false,'505050');
   line(text(data.opt.email),L,H-82,8,false,'505050','right');line('Tél. '+text(data.opt.phone),L,H-69,8,false,'505050','right');line('Fax '+text(data.opt.fax),L,H-57,8,false,'505050','right');
+  }
   if(p.kind!=='cover'){line('Conseil municipal du '+date(data.s.Date_heure_seance),L,H-33,7);line(`${index+1} / ${model.pages.length}`,L,H-33,7,false,'000000','right');}
   for(const item of p.items){
    if(item.type==='text')item.lines.forEach((s,i)=>line(s,item.x,item.top+i*item.line,item.size,item.bold,item.color||'000000',item.align,item.width||R-L));
@@ -198,7 +199,7 @@ async function word(model,logo){
   const header=new D.Header({children:[p('RÉPUBLIQUE FRANÇAISE',8),p('DÉPARTEMENT DES LANDES',8.5),p('Ville de Sanguinet',9,true),new D.Paragraph({children:[new D.ImageRun({type:'png',data:logo,transformation:{width:148,height:76.8},floating:{horizontalPosition:{relative:D.HorizontalPositionRelativeFrom.PAGE,offset:Math.round((R-111)*12700)},verticalPosition:{relative:D.VerticalPositionRelativeFrom.PAGE,offset:Math.round(36.4*12700)},wrap:{type:D.TextWrappingType.NONE},behindDocument:false}})],spacing:{before:0,after:0,line:1,lineRule:D.LineRuleType.EXACT}})]});
   const footerLine=(left,right,bold=false)=>new D.Paragraph({children:[run(left,8,bold,bold?accent:'505050'),run('\t'+right,8)],tabStops:[{type:D.TabStopType.RIGHT,position:tw(R-L)}],spacing:{before:0,after:0,line:tw(12),lineRule:D.LineRuleType.EXACT}});
   const pageCount=new D.Paragraph({children:page.kind==='cover'?[]:[run('Conseil municipal du '+date(data.s.Date_heure_seance)+'\t',7),new D.TextRun({children:[D.PageNumber.CURRENT,' / ',D.PageNumber.TOTAL_PAGES],font:'Arial',size:14})],tabStops:[{type:D.TabStopType.RIGHT,position:tw(R-L)}],spacing:{before:tw(12),after:0,line:tw(10),lineRule:D.LineRuleType.EXACT}});
-  const footer=new D.Footer({children:[footerLine('MAIRIE DE SANGUINET',text(data.opt.email),true),footerLine(text(data.opt.address),'Tél. '+text(data.opt.phone)),footerLine(text(data.opt.city),'Fax '+text(data.opt.fax)),pageCount]});
+  const footer=new D.Footer({children:[...(page.kind==='project'?[]:[footerLine('MAIRIE DE SANGUINET',text(data.opt.email),true),footerLine(text(data.opt.address),'Tél. '+text(data.opt.phone)),footerLine(text(data.opt.city),'Fax '+text(data.opt.fax))]),pageCount]});
   const children=[];let cursor=TOP;
   for(let n=0;n<page.items.length;n++){
    const item=page.items[n],gap=Math.max(0,item.top-cursor);

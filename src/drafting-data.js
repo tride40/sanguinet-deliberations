@@ -69,5 +69,5 @@
   if(actions.length)actions.push(['AddRecord','JOURNAL_ACTIONS',null,{Date_action:Date.now()/1000,Utilisateur:0,Type_action:id?'Modification':'Création',Deliberation:did,Seance:general.seance||0,Description:id?'Enregistrement du projet de délibération':'Création du projet de délibération',Automatique:false,Niveau:'Information'}]);
   return {id:did,actions};
  }
- const api={tables,rows,scope,load,locked,plan};root.DraftingData=api;if(typeof module!=='undefined')module.exports=api;
+ const api={tables,rows,scope,load,locked,sessionOpen,plan};root.DraftingData=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

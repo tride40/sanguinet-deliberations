@@ -93,7 +93,17 @@
  for(const selector of ['#projectSearch','#projectCouncil','#projectState','#projectSort'])$(selector).addEventListener(selector==='#projectSearch'?'input':'change',()=>{libraryLimit=12;list();});
  $('#resetProjectFilters').onclick=()=>{$('#projectSearch').value='';$('#projectCouncil').value='all';$('#projectState').value='all';$('#projectSort').value='recent';libraryLimit=12;list();};
  $('#moreProjects').onclick=()=>{libraryLimit+=12;list();};
- $('#newDraft').onclick=()=>{if(mayLeave()){window.TableEditor.close();show(0);$('#objet').focus();}};
+ const creation=document.createElement('dialog');creation.id='newDraftDialog';creation.setAttribute('aria-labelledby','creationTitle');creation.innerHTML=`<form id="newDraftForm"><div class="creation-heading"><h2 id="creationTitle">Nouvelle délibération</h2><button type="button" id="closeCreation" class="ghost-btn" aria-label="Fermer">×</button></div><p>Un objet suffit pour enregistrer votre brouillon. Vous pourrez compléter toutes les autres informations plus tard.</p><label>Objet de la délibération<input id="creationObject" required maxlength="1000" placeholder="Ex. Renouvellement d’une convention"></label><label>Conseil prévu — facultatif<select id="creationCouncil"></select></label><label>Note de préparation — facultative<textarea id="creationNote" rows="3"></textarea></label><p id="creationError" role="alert"></p><div class="creation-actions"><button type="button" id="cancelCreation" class="ghost-btn">Annuler</button><button id="submitCreation" class="primary-btn">Enregistrer le brouillon</button></div></form>`;document.body.append(creation);
+ const closeCreation=()=>{if(!busy)creation.close();};$('#closeCreation').onclick=closeCreation;$('#cancelCreation').onclick=closeCreation;creation.addEventListener('cancel',e=>{if(busy)e.preventDefault();});creation.addEventListener('click',e=>{if(e.target===creation){const r=creation.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeCreation();}});
+ $('#newDraft').onclick=()=>{if(busy||!access)return;$('#newDraftForm').reset();$('#creationError').textContent='';$('#creationCouncil').innerHTML='<option value="0">Sans conseil pour le moment</option>'+db.SEANCES_CM.filter(s=>D.sessionOpen(db,s.id)).slice().sort((a,b)=>a.Date_heure_seance-b.Date_heure_seance).map(s=>`<option value="${s.id}">${esc(councilLabel(s))}</option>`).join('');creation.showModal();$('#creationObject').focus();};
+ $('#newDraftForm').onsubmit=async e=>{e.preventDefault();if(busy||!access)return;const objet=$('#creationObject').value.trim();if(!objet){$('#creationError').textContent='Renseignez simplement un objet pour identifier ce brouillon.';return;}if(!mayLeave())return;
+ await run(async()=>{for(const el of creation.querySelectorAll('input,select,textarea,button'))el.disabled=true;$('#creationError').textContent='';try{
+ const fresh=await fetchDB();const payload={general:{objet,seance:Number($('#creationCouncil').value)||0,note:$('#creationNote').value,unite:0,rapporteur:0,domaine:''},expose:[],visas:[],considerants:[],articles:[]};const batch=D.plan(fresh,0,payload);if(!access)throw Error('Accès complet au document requis.');await grist.docApi.applyUserActions(batch.actions);
+ creation.close();window.TableEditor.close();id=batch.id;originId=0;originSnapshot='';loadFailed=true;baseline=fingerprint();
+ try{db=await fetchDB();loadFailed=false;$('#resetProjectFilters').click();show(id);$('#draftMessage').scrollIntoView({block:'start'});status('connected','✓ Brouillon enregistré. Complétez-le à votre rythme.');}catch(err){status('error','Brouillon enregistré, mais relecture impossible. Cliquez sur Actualiser.');}
+ }catch(err){$('#creationError').textContent=err.message;throw err;}finally{for(const el of creation.querySelectorAll('input,select,textarea,button'))el.disabled=false;}});
+ };
+
  $('#reloadDraft').onclick=refresh;
  document.addEventListener('input',e=>{if(e.target.closest('#draftFields'))controls();});
  document.addEventListener('change',e=>{if(e.target.closest('#draftFields'))controls();});
@@ -102,7 +112,7 @@
  window.Drafting={readOnly,context:()=>({db,id,access,busy,dirty:dirty()}),fetchDB,refresh,run};
  show(0);$('#planningBack').hidden=route.get('from')!=='planning';
  window.addEventListener('DOMContentLoaded',()=>{
-  $('#appVersion').textContent='v0.11.2 · Rédaction';
+  $('#appVersion').textContent='v0.11.3 · Rédaction';
   if(!window.grist||parent===window){initialized=true;status('warning','Aperçu local : vous pouvez essayer la rédaction et les tableaux. Pour enregistrer, ouvrez cette page comme widget Grist avec accès complet.');controls();return;}
   grist.onOptions((options,interaction)=>{
    access=(interaction?.accessLevel??interaction?.access_level)==='full';

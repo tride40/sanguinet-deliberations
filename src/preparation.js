@@ -47,17 +47,28 @@
 
  }
 
+ function councils(){return db.SEANCES_CM.filter(s=>!['Terminée','Annulée'].includes(s.Statut_seance)).slice().sort((a,b)=>(a.Date_heure_seance||Infinity)-(b.Date_heure_seance||Infinity)||a.id-b.id);}
+ function renderCouncils(){
+  const list=councils();
+  $('#sessions').innerHTML=list.map((s,i)=>{
+   const date=s.Date_heure_seance?new Date(s.Date_heure_seance*1000):null;
+   const month=date?date.toLocaleDateString('fr-FR',{month:'long',year:'numeric',timeZone:'Europe/Paris'}):'Date à préciser';
+   const detail=date?date.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',timeZone:'Europe/Paris'})+' · '+date.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'}):'Conseil à programmer';
+   return `<button type="button" class="council-choice ${i===0?'next-council':''} ${s.id===id?'selected':''}" data-session="${s.id}" aria-pressed="${s.id===id}"><span class="choice-eyebrow">${i===0?'Prochain conseil':'Conseil suivant'}</span><strong>${esc(month)}</strong><span class="choice-date">${esc(detail)}</span><span class="choice-footer"><span>${s.Ordre_du_jour_valide?'Ordre du jour verrouillé':'En préparation'}</span><span class="choice-check" aria-hidden="true">${s.id===id?'✓':'→'}</span></span></button>`;
+  }).join('')||'<p class="hint">Aucun conseil à préparer. Créez une séance dans la page Planification.</p>';
+ }
+
  function show(next){
 
   clearDownloads();id=next;const s=db.SEANCES_CM.find(s=>s.id===id),params=db.PARAMETRES_APPLICATION[0]||{};
 
-  $('#sessions').innerHTML='<option value="0">Choisir un conseil</option>'+db.SEANCES_CM.filter(s=>s.Statut_seance!=='Terminée').slice().sort((a,b)=>b.Date_heure_seance-a.Date_heure_seance).map(s=>`<option value="${s.id}">${esc(s.Libelle_seance||s.Reference_seance||'Séance '+s.id)}</option>`).join('');$('#sessions').value=String(id);
+  renderCouncils();
 
   $('#sessionDate').value=P.localDate(s?.Date_heure_seance);$('#sessionPlace').value=s?.Lieu_seance||params.Lieu_seance_defaut||'';$('#members').value=s?.Nb_membres_exercice||params.Nb_conseillers||db.ELUS.filter(e=>e.Actif).length||'';$('#convocation').value=s?.Date_convocation?new Date(s.Date_convocation*1000).toISOString().slice(0,10):'';
 
   $('#sessionHeading').textContent=s?'Informations de la séance':'Choisissez un conseil';$('#sessionState').textContent=s?.Ordre_du_jour_valide?'● Ordre du jour verrouillé':s?.Statut_seance||'';$('#saveSession').textContent='Enregistrer les informations';
 
-  $('#agendaArea').hidden=!s;$('#toggleLock').hidden=!s;$('#toggleLock').textContent=s?.Ordre_du_jour_valide?'Rouvrir la préparation':'Verrouiller l’ordre du jour';$('#instructions').textContent=!s?'Créez d’abord une séance dans la page Planification des conseils.':P.open(db,id)?'Ajoutez vos projets à l’ordre du jour puis classez-les. Les textes restent modifiables dans la rédaction tant que la préparation est ouverte.':'La préparation est verrouillée. Vous pouvez la rouvrir explicitement tant que le conseil n’a pas été envoyé aux élus ou commencé.';
+  $('#agendaArea').hidden=!s;$('#lockArea').hidden=!s;$('#toggleLock').hidden=!s;$('#toggleLock').textContent=s?.Ordre_du_jour_valide?'Rouvrir la préparation':'Verrouiller l’ordre du jour';$('#instructions').textContent=!s?'Créez d’abord une séance dans la page Planification des conseils.':P.open(db,id)?'Ajoutez vos projets à l’ordre du jour puis classez-les. Les textes restent modifiables dans la rédaction tant que la préparation est ouverte.':'La préparation est verrouillée. Vous pouvez la rouvrir explicitement tant que le conseil n’a pas été envoyé aux élus ou commencé.';
 
   const defaults=CouncilExports.options(db,id);$('#exportDate').value=defaults.letterDate;$('#exportSigner').value=defaults.signer;$('#exportQuality').value=defaults.quality;$('#annexAcknowledged').checked=false;
   desired=structuredClone(P.points(db,id));baseAgenda=JSON.stringify(desired);baseForm=JSON.stringify(fields());renderAgenda();
@@ -68,11 +79,11 @@
 
  async function run(fn){if(busy)return;busy=true;controls();try{await fn();}catch(e){status('error',e.message);}finally{busy=false;controls();}}
 
- async function refresh(){if(!leave())return;await run(async()=>{db=await fetchDB();needsReload=false;show(db.SEANCES_CM.filter(s=>s.Statut_seance!=='Terminée').some(s=>s.id===id)?id:db.SEANCES_CM.filter(s=>s.Statut_seance!=='Terminée'&&s.Date_heure_seance>=Date.now()/1000).sort((a,b)=>a.Date_heure_seance-b.Date_heure_seance)[0]?.id||db.SEANCES_CM.find(s=>s.Statut_seance!=='Terminée')?.id||0);status('connected','Connecté à Grist — préparation du conseil municipal.');});}
+ async function refresh(){if(!leave())return;await run(async()=>{db=await fetchDB();needsReload=false;show(councils().some(s=>s.id===id)?id:councils()[0]?.id||0);status('connected','Connecté à Grist — préparation du conseil municipal.');});}
 
  async function save(build){if(needsReload||!access)return;await run(async()=>{const fresh=await fetchDB();if(JSON.stringify(fresh)!==JSON.stringify(db))throw Error('Les données ont changé dans Grist. Actualisez avant d’enregistrer ; vos modifications restent à l’écran.');const plan=build(fresh);if(!access)throw Error('Accès complet requis.');await grist.docApi.applyUserActions(plan.actions);id=plan.id;needsReload=true;baseAgenda=JSON.stringify(desired);baseForm=JSON.stringify(fields());try{db=await fetchDB();needsReload=false;show(id);status('connected','✓ Enregistré dans Grist.');}catch(e){status('error','Enregistrement effectué, mais relecture impossible. Cliquez sur Actualiser.');}});}
 
- $('#sessions').onchange=()=>{const next=Number($('#sessions').value);if(leave())show(next);else $('#sessions').value=String(id);};$('#refresh').onclick=refresh;$('#search').oninput=renderAgenda;
+ $('#sessions').onclick=e=>{const button=e.target.closest('[data-session]');if(!button||busy||!access)return;const next=Number(button.dataset.session);if(next!==id&&leave()){show(next);$('#sessions [data-session="'+next+'"]')?.focus();}};$('#refresh').onclick=refresh;$('#search').oninput=renderAgenda;
 
  $('#saveSession').onclick=()=>{if(!id)return;if(agendaDirty()){status('warning','Enregistrez d’abord les modifications de l’ordre du jour.');return;}save(db=>P.sessionPlan(db,id,fields()));};
 

@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Remise à zéro des tests — Sanguinet</title><link rel="stylesheet" href="css/reset.css"><script src="https://docs.getgrist.com/grist-plugin-api.js"></script><script defer src="src/reset-data.js"></script><script defer src="src/reset.js"></script></head>
+<body><main><header><span>SANGUINET · OUTIL TEMPORAIRE · v0.10.3</span><h1>Repartir à zéro</h1><p>Supprimer les séances et les projets de test, en conservant les données de référence.</p></header>
+<p id="status" role="status">Connexion à Grist…</p>
+<section><h2>Ce qui sera conservé</h2><p>Élus, groupes politiques, agents, services, affectations, paramètres, modèles de documents et séquences de numérotation.</p><p>Les tables, leurs colonnes, leurs formules et les pages de votre application sont conservées.</p><button id="analyse" disabled>Analyser les données de test</button></section>
+<section id="preview" hidden><h2>Données qui seront supprimées</h2><p>Toutes les lignes des tables ci-dessous, y compris les séances verrouillées et les votes validés. Cet outil ne distingue pas un test d’une donnée réelle.</p><div class="table-wrap"><table><thead><tr><th>Table</th><th>Lignes</th></tr></thead><tbody id="counts"></tbody></table></div><p id="total"></p><p id="preserved"></p>
+<p>Avant de continuer, téléchargez une copie complète du document au format <strong>.grist</strong> depuis Grist. Fermez les autres widgets de saisie et demandez aux autres utilisateurs de ne pas modifier le document pendant cette opération.</p><p>Les pièces jointes ne sont pas purgées du stockage : seules leurs lignes de liaison sont retirées.</p>
+<label><input type="checkbox" id="backup"> J’ai téléchargé la sauvegarde .grist et je confirme que ces lignes sont uniquement des tests.</label>
+<label for="confirmation">Pour confirmer, recopiez : <strong>EFFACER LES TESTS</strong></label><input id="confirmation" autocomplete="off" placeholder="EFFACER LES TESTS">
+<button id="erase" class="danger" disabled>Supprimer les données de test</button><p>Une nouvelle vérification est effectuée juste avant la suppression. Aucune suppression ne se produit à l’ouverture ou lors de l’analyse.</p></section>
+</main></body></html>

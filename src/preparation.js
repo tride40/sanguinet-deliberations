@@ -2,6 +2,7 @@
 
  'use strict';const P=PlanningData,$=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+ let downloadUrls=[];
  let db,id=0,desired=[],baseAgenda='',baseForm='',access=false,busy=false,needsReload=false;
 
  const fields=()=>({date:$('#sessionDate').value,place:$('#sessionPlace').value,convocation:$('#convocation').value,members:$('#members').value});
@@ -18,7 +19,7 @@
 
   $('#planner').inert=busy||!access||!db;
 
-  if(!db)return;const editable=!id||P.open(db,id);
+  if(!db)return;exportControls();const editable=!id||P.open(db,id);
 
   $('#sessionForm').disabled=!id||!editable||needsReload;$('#sessionDate').disabled=true;$('#saveAgenda').disabled=!editable||needsReload||!agendaDirty();
 
@@ -48,7 +49,7 @@
 
  function show(next){
 
-  id=next;const s=db.SEANCES_CM.find(s=>s.id===id),params=db.PARAMETRES_APPLICATION[0]||{};
+  clearDownloads();id=next;const s=db.SEANCES_CM.find(s=>s.id===id),params=db.PARAMETRES_APPLICATION[0]||{};
 
   $('#sessions').innerHTML='<option value="0">Choisir un conseil</option>'+db.SEANCES_CM.slice().sort((a,b)=>b.Date_heure_seance-a.Date_heure_seance).map(s=>`<option value="${s.id}">${esc(s.Libelle_seance||s.Reference_seance||'Séance '+s.id)}</option>`).join('');$('#sessions').value=String(id);
 
@@ -58,6 +59,7 @@
 
   $('#agendaArea').hidden=!s;$('#toggleLock').hidden=!s;$('#toggleLock').textContent=s?.Ordre_du_jour_valide?'Rouvrir la préparation':'Verrouiller l’ordre du jour';$('#instructions').textContent=!s?'Créez d’abord une séance dans la page Planification des conseils.':P.open(db,id)?'Ajoutez vos projets à l’ordre du jour puis classez-les. Les textes restent modifiables dans la rédaction tant que la préparation est ouverte.':'La préparation est verrouillée. Vous pouvez la rouvrir explicitement tant que le conseil n’a pas été envoyé aux élus ou commencé.';
 
+  const defaults=CouncilExports.options(db,id);$('#exportDate').value=defaults.letterDate;$('#exportSigner').value=defaults.signer;$('#exportQuality').value=defaults.quality;$('#annexAcknowledged').checked=false;
   desired=structuredClone(P.points(db,id));baseAgenda=JSON.stringify(desired);baseForm=JSON.stringify(fields());renderAgenda();
 
  }
@@ -94,11 +96,41 @@
 
  };
 
+
+ function clearDownloads(){downloadUrls.forEach(url=>URL.revokeObjectURL(url));downloadUrls=[];$('#exportResult').replaceChildren();}
+ function exportControls(){
+  if(dirty()||needsReload||!access)clearDownloads();
+  const hasLetter=$('#exportKind').value!=='projects';$('#letterFields').hidden=!hasLetter;
+  $('#generateDocuments').disabled=!id||busy||needsReload||dirty()||!access;
+  $('#exportHint').textContent=!id?'Sélectionnez un conseil.':dirty()?'Enregistrez vos modifications avant de générer les fichiers.':db.SEANCES_CM.find(s=>s.id===id)?.Ordre_du_jour_valide?'L’ordre du jour est verrouillé. Les exports reprennent les données enregistrées.':'La préparation est encore ouverte. Les fichiers sont des versions de travail et devront être régénérés après toute modification.';
+ }
+ $('#exportKind').onchange=()=>{clearDownloads();$('#annexWarning').hidden=true;$('#annexConfirm').hidden=true;$('#annexAcknowledged').checked=false;exportControls();};
+ for(const selector of ['#exportColor','#exportPdf','#exportWord','#exportDate','#exportSigner','#exportQuality'])$(selector).onchange=clearDownloads;
+ $('#generateDocuments').onclick=()=>run(async()=>{
+  if(dirty()||needsReload||!id||!access)throw Error('Enregistrez vos modifications puis actualisez la séance.');
+  clearDownloads();status('loading','Préparation des documents…');
+  const result=await Promise.allSettled(CouncilExports.tables.map(t=>grist.docApi.fetchTable(t)));
+  const errors=result.flatMap((r,i)=>r.status==='rejected'?[CouncilExports.tables[i]+': '+(r.reason?.message||r.reason)]:[]);
+  if(errors.length)throw Error('Lecture des documents impossible : '+errors.join(' ; '));
+  if(!access)throw Error('Accès complet au document requis.');
+  const fresh=Object.fromEntries(result.map((r,i)=>[CouncilExports.tables[i],rows(r.value)]));
+  if(JSON.stringify(fresh.SEANCES_CM)!==JSON.stringify(db.SEANCES_CM)||JSON.stringify(fresh.ORDRE_DU_JOUR)!==JSON.stringify(db.ORDRE_DU_JOUR)||JSON.stringify(fresh.DELIBERATIONS)!==JSON.stringify(db.DELIBERATIONS))throw Error('La séance ou ses projets ont changé. Cliquez sur Actualiser avant de générer.');
+  const ids=new Set(fresh.ORDRE_DU_JOUR.filter(p=>p.Seance===id).map(p=>p.Deliberation));
+  const annexes=$('#exportKind').value==='convocation'?[]:fresh.ANNEXES.filter(a=>ids.has(a.Deliberation));
+  $('#annexWarning').hidden=!annexes.length;$('#annexConfirm').hidden=!annexes.length;
+  $('#annexWarning').textContent=annexes.length?'Les pièces annexes ne sont pas fusionnées dans cette version. Elles sont mentionnées dans les projets et doivent être jointes séparément : '+annexes.map(a=>a.Titre_annexe||'Annexe sans titre').join(' ; '):'';
+  const opt={kind:$('#exportKind').value,bw:$('#exportColor').value==='bw',pdf:$('#exportPdf').checked,word:$('#exportWord').checked,letterDate:$('#exportDate').value,signer:$('#exportSigner').value.trim(),quality:$('#exportQuality').value.trim(),annexesAcknowledged:$('#annexAcknowledged').checked};
+  const output=await CouncilExports.generate(fresh,id,opt);
+  if(!access)throw Error('L’accès au document a été retiré.');
+  const message=document.createElement('p');message.textContent='Fichiers prêts. Cliquez sur chaque lien pour les télécharger.';$('#exportResult').append(message);
+  for(const file of output.files){const link=document.createElement('a'),url=URL.createObjectURL(file.blob);downloadUrls.push(url);link.href=url;link.download=file.name;link.className='secondary-btn';link.textContent='Télécharger '+(file.name.endsWith('.pdf')?'le PDF':'le Word');$('#exportResult').append(link);}
+  status('connected','✓ Documents générés à partir des données enregistrées. Aucun envoi effectué.');
+ });
  window.addEventListener('beforeunload',e=>{if(db&&dirty()){e.preventDefault();e.returnValue='';}});
 
  if(!window.grist||parent===window){status('warning','Installez preparation.html dans un widget Grist avec accès complet pour planifier vos conseils.');return;}
 
- grist.onOptions((o,i)=>{access=(i?.accessLevel??i?.access_level)==='full';controls();if(!access){status('warning','Autorisez l’accès complet au document.');return;}if(!db)refresh();});grist.ready({requiredAccess:'full'});
+ grist.onOptions((o,i)=>{access=(i?.accessLevel??i?.access_level)==='full';controls();if(!access){clearDownloads();status('warning','Autorisez l’accès complet au document.');return;}if(!db)refresh();});grist.ready({requiredAccess:'full'});
 
 })();
 
